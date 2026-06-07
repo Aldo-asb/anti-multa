@@ -1,215 +1,530 @@
-// Servidor de Produção Full-Stack: v13.0
-// Anti-Multa Goiânia — Backend Principal
-require('dotenv').config();
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Anti-Multa Goiânia</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-const express = require('express');
-const { Pool } = require('pg');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-const path = require('path');
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #121212; color: #ffffff; height: 100vh; overflow: hidden; }
+        .tela-autenticacao { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; padding: 20px; box-sizing: border-box; background-color: #1a1c25; }
+        .card-auth { background-color: #23252f; padding: 25px; border-radius: 12px; border: 2px solid #3a3d48; width: 100%; max-width: 360px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); text-align: center; }
+        .card-auth h2 { margin: 0 0 15px 0; color: #0079f2; font-size: 20px; text-transform: uppercase; }
+        .input-auth { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 2px solid #3a3d48; background-color: #15171f; color: white; font-size: 15px; box-sizing: border-box; }
+        .btn-auth { width: 100%; padding: 14px; background-color: #0079f2; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-auth-secundario { background: none; border: none; color: #a2a8b2; font-size: 13px; margin-top: 15px; cursor: pointer; text-decoration: underline; }
+        
+        #app-container { display: none; flex-direction: column; height: 100vh; }
+        #painel-superior { padding: 15px; background-color: #1e1e1e; border-bottom: 4px solid #333; display: flex; flex-direction: column; align-items: center; z-index: 10; }
+        #texto-status { font-size: 16px; font-weight: bold; color: #aaa; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .dashboard-container { display: flex; align-items: center; justify-content: space-around; width: 100%; max-width: 400px; }
+        
+        .semaforo { background-color: #222; padding: 8px; border-radius: 15px; display: flex; flex-direction: column; gap: 8px; border: 2px solid #444; }
+        .luz { width: 24px; height: 24px; border-radius: 50%; background-color: #333; transition: background-color 0.2s, box-shadow 0.2s; }
+        .luz-verde.ativa { background-color: #00e676; box-shadow: 0 0 15px #00e676; }
+        .luz-amarela.ativa { background-color: #ffea00; box-shadow: 0 0 15px #ffea00; }
+        .luz-vermelha.ativa { background-color: #ff1744; box-shadow: 0 0 15px #ff1744; }
 
-const app = express();
-app.use(express.json());
-app.use(cors());
+        #vel-atual { font-size: 65px; font-weight: bold; color: #ffffff; line-height: 1; }
+        .unidade-medida { font-size: 14px; color: #888; font-weight: bold; }
+        .bloco-limites { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #bbb; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; min-width: 110px; }
+        .limite-linha { display: flex; justify-content: space-between; }
+        .limite-valor { font-weight: bold; color: #fff; }
 
-const JWT_SECRET = process.env.JWT_SECRET;
+        #conteudo-central { flex: 1; position: relative; width: 100%; }
+        #mapa { width: 100%; height: 100%; z-index: 1; }
+        #btn-menu-lateral { position: absolute; top: 10px; right: 10px; z-index: 5; background-color: rgba(38, 38, 38, 0.9); color: #ffea00; border: 2px solid #444; padding: 10px 14px; font-size: 12px; font-weight: bold; border-radius: 20px; cursor: pointer; }
 
-const pool = new Pool({
-    host:                    'aws-1-sa-east-1.pooler.supabase.com',
-    port:                    5432,
-    database:                'postgres',
-    user:                    'postgres.mcpzdtewuqmbxxlrttfc',
-    password:                process.env.DB_PASSWORD,
-    ssl:                     { rejectUnauthorized: false },
-    max:                     10,
-    idleTimeoutMillis:       30000,
-    connectionTimeoutMillis: 10000,
-});
+        #tela-historico { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(18, 18, 18, 0.98); z-index: 100; flex-direction: column; }
+        .topo-historico { background-color: #1e1e1e; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; }
+        .topo-historico h3 { margin: 0; color: #ffea00; font-size: 16px; text-transform: uppercase; }
+        .btn-fechar-historico { background-color: #c62828; color: white; border: none; padding: 8px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .corpo-historico-scroll { flex: 1; overflow-y: auto; padding: 15px; }
+        .tabela-historico { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tabela-historico th { color: #888; padding: 8px 4px; border-bottom: 1px solid #333; text-align: left; }
+        .tabela-historico td { padding: 10px 4px; border-bottom: 1px solid #222; }
+        .btn-deletar-radar { background-color: #c62828; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
 
-async function inicializarBancoDeDados() {
-    try {
-        const client = await pool.connect();
-        console.log('✅ Conexão com o banco estabelecida!');
-        client.release();
+        /* Estilização das cores do histórico de passagens integrado ao padrão escuro */
+        .linha-passagem-verde { color: #00e676 !important; font-weight: bold; }
+        .linha-passagem-amarela { color: #ffea00 !important; font-weight: bold; }
+        .linha-passagem-vermelha { color: #ff1744 !important; font-weight: bold; }
 
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id         SERIAL PRIMARY KEY,
-                nome       VARCHAR(100) NOT NULL,
-                email      VARCHAR(100) UNIQUE NOT NULL,
-                senha_hash VARCHAR(255) NOT NULL,
-                pin_hash   VARCHAR(255) NOT NULL,
-                criado_em  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
+        #modal-fixar-radar { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #1e1e1e; border: 3px solid #f57c00; border-radius: 15px; padding: 20px; z-index: 200; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.7); }
+        #modal-fixar-radar h4 { margin: 0 0 15px 0; color: #f57c00; font-size: 16px; }
+        .container-botoes-vel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .btn-vel-opcao { background-color: #333; color: white; border: 2px solid #555; padding: 15px; font-size: 20px; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .btn-cancelar-radar { background-color: #555; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS radares (
-                id         SERIAL PRIMARY KEY,
-                user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                local      VARCHAR(255) NOT NULL,
-                lat        DOUBLE PRECISION NOT NULL,
-                lon        DOUBLE PRECISION NOT NULL,
-                velocidade INTEGER NOT NULL,
-                criado_em  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
+        #painel-botoes { display: flex; padding: 10px; background-color: #1e1e1e; gap: 10px; border-top: 2px solid #333; z-index: 10; }
+        .btn-acao { flex: 1; padding: 14px; font-size: 14px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .btn-reportar { background-color: #f57c00; }
+        .btn-pip { background-color: #0288d1; }
+        #canvas-pip { display: none; }
+        #video-pip { display: none; }
+        #info-gps { padding: 6px; font-size: 11px; text-align: center; background-color: #111; color: #888; z-index: 10; }
+    </style>
+</head>
+<body>
 
-        console.log('=== BANCO DE DADOS POSTGRESQL SINCRONIZADO COM SUCESSO ===');
-    } catch (err) {
-        console.error('❌ ERRO CRÍTICO AO INICIALIZAR BANCO DE DADOS:', err.message);
-        console.error('   Code:', err.code);
-        process.exit(1);
-    }
-}
-inicializarBancoDeDados();
+    <div id="tela-login" class="tela-autenticacao">
+        <div class="card-auth">
+            <h2>Acesso Anti-Multa</h2>
+            <input type="email" id="login-email" class="input-auth" placeholder="Seu E-mail registrado">
+            <input type="password" id="login-senha" class="input-auth" placeholder="Sua Senha">
+            <button class="btn-auth" onclick="executarLoginTradicional()">ENTRAR NO PAINEL</button>
+            <button class="btn-auth-secundario" onclick="alternarFluxoAuth('pin')">Usar PIN de 4 dígitos</button>
+            <button class="btn-auth-secundario" onclick="alternarFluxoAuth('cadastro')" style="display:block; margin: 10px auto 0 auto;">Criar nova conta de motorista</button>
+        </div>
+    </div>
 
-app.post('/api/auth/register', async (req, res) => {
-    const { nome, email, senha, pin } = req.body;
-    try {
-        if (!nome || !email || !senha || !pin)
-            return res.status(400).json({ error: 'Preencha todos os campos.' });
+    <div id="tela-pin" class="tela-autenticacao" style="display:none;">
+        <div class="card-auth">
+            <h2>PIN Rápido de Acesso</h2>
+            <input type="email" id="pin-email" class="input-auth" placeholder="Confirme seu E-mail">
+            <input type="number" id="login-pin" class="input-auth" placeholder="PIN de 4 dígitos" pattern="[0-9]*" inputmode="numeric">
+            <button class="btn-auth" onclick="executarLoginPorPIN()">VERIFICAR E ENTRAR</button>
+            <button class="btn-auth-secundario" onclick="alternarFluxoAuth('login')">Voltar para Senha</button>
+        </div>
+    </div>
 
-        const senhaHash = await bcrypt.hash(senha, 10);
-        const pinHash   = await bcrypt.hash(pin.toString(), 10);
+    <div id="tela-cadastro" class="tela-autenticacao" style="display:none;">
+        <div class="card-auth">
+            <h2>Novo Cadastro ASB</h2>
+            <input type="text" id="cad-nome" class="input-auth" placeholder="Nome Completo">
+            <input type="email" id="cad-email" class="input-auth" placeholder="E-mail de Trabalho">
+            <input type="password" id="cad-senha" class="input-auth" placeholder="Senha de Acesso">
+            <input type="number" id="cad-pin" class="input-auth" placeholder="PIN de Segurança (4 dígitos)" pattern="[0-9]*" inputmode="numeric">
+            <button class="btn-auth" onclick="executarCadastroMotorista()">CONCLUIR CRIAÇÃO</button>
+            <button class="btn-auth-secundario" onclick="alternarFluxoAuth('login')">Já possui conta? Faça Login</button>
+        </div>
+    </div>
 
-        const novoUsuario = await pool.query(
-            'INSERT INTO users (nome, email, senha_hash, pin_hash) VALUES ($1, $2, $3, $4) RETURNING id, nome, email',
-            [nome, email, senhaHash, pinHash]
-        );
+    <div id="app-container">
+        <div id="painel-superior">
+            <div id="texto-status">SINALIZADOR DE VIA ACTIVO</div>
+            <div class="dashboard-container">
+                <div class="semaforo">
+                    <div id="luz-vermelha" class="luz luz-vermelha"></div>
+                    <div id="luz-amarela" class="luz luz-amarela"></div>
+                    <div id="luz-verde" class="luz luz-verde ativa"></div>
+                </div>
+                <div style="text-align:center;" onclick="liberarAudioNavegador()">
+                    <span id="vel-atual">0</span><br><span class="unidade-medida">KM/H</span>
+                </div>
+                <div class="bloco-limites">
+                    <div class="limite-linha"><span>Vel. Máxima:</span> <span id="vel-maxima" class="limite-valor">60</span></div>
+                    <div class="limite-linha"><span>Vel. Mínima:</span> <span id="vel-minima" class="limite-valor">30</span></div>
+                    <div id="distancia-radar" style="font-size: 11px; color: #ffea00; margin-top: 4px; font-weight: bold; text-align: center;"></div>
+                </div>
+            </div>
+        </div>
 
-        const token = jwt.sign({ id: novoUsuario.rows[0].id }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({ token, user: novoUsuario.rows[0] });
-    } catch (err) {
-        if (err.code === '23505')
-            return res.status(400).json({ error: 'Este e-mail já está cadastrado.' });
-        console.error('[register]', err.message);
-        res.status(500).json({ error: 'Erro interno no servidor de cadastro.' });
-    }
-});
+        <div id="conteudo-central">
+            <button id="btn-menu-lateral" onclick="abrirTelaHistorico()">📋 MEUS RADARES</button>
+            <div id="mapa"></div>
+        </div>
 
-app.post('/api/auth/login', async (req, res) => {
-    const { email, senha } = req.body;
-    try {
-        const usuario = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (usuario.rows.length === 0)
-            return res.status(400).json({ error: 'E-mail ou senha inválidos.' });
+        <div id="tela-historico">
+            <div class="topo-historico">
+                <h3>🗑️ Gerenciar Meus Radares e Passagens</h3>
+                <button class="btn-fechar-historico" onclick="fecharTelaHistorico()">❌ VOLTAR</button>
+            </div>
+            <div class="corpo-historico-scroll">
+                <table class="tabela-historico">
+                    <thead>
+                        <tr>
+                            <th>Horário</th>
+                            <th>Localização / Via</th>
+                            <th>Velocidade Passagem</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpo-historico"></tbody>
+                </table>
+            </div>
+        </div>
 
-        const senhaValida = await bcrypt.compare(senha, usuario.rows[0].senha_hash);
-        if (!senhaValida)
-            return res.status(400).json({ error: 'E-mail ou senha inválidos.' });
+        <div id="modal-fixar-radar">
+            <h4>⚠️ FIXAR RADAR COMPARTILHADO</h4>
+            <div class="container-botoes-vel">
+                <button class="btn-vel-opcao" onclick="publicarRadarBancoCompartilhado(40)">40</button>
+                <button class="btn-vel-opcao" onclick="publicarRadarBancoCompartilhado(50)">50</button>
+                <button class="btn-vel-opcao" onclick="publicarRadarBancoCompartilhado(60)">60</button>
+                <button class="btn-vel-opcao" onclick="publicarRadarBancoCompartilhado(80)">80</button>
+            </div>
+            <button class="btn-cancelar-radar" onclick="fecharModalRadar()">CANCELAR</button>
+        </div>
 
-        const token = jwt.sign({ id: usuario.rows[0].id }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({
-            token,
-            user: { id: usuario.rows[0].id, nome: usuario.rows[0].nome, email: usuario.rows[0].email }
-        });
-    } catch (err) {
-        console.error('[login]', err.message);
-        res.status(500).json({ error: 'Erro interno no servidor de login.' });
-    }
-});
+        <canvas id="canvas-pip" width="500" height="500"></canvas>
+        <video id="video-pip" autoplay muted playsinline></video>
 
-app.post('/api/auth/pin', async (req, res) => {
-    const { email, pin } = req.body;
-    try {
-        const usuario = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (usuario.rows.length === 0)
-            return res.status(400).json({ error: 'Motorista não encontrado.' });
+        <div id="painel-botoes">
+            <button class="btn-acao btn-reportar" onclick="abrirModalRadar()">📍 FIXAR RADAR</button>
+            <button class="btn-acao btn-pip" onclick="alternarModoFlutuanteSobreposto()">🔲 TELA FLUTUANTE</button>
+        </div>
+        <div id="info-gps">Precisão do GPS: -- | Banco Nuvem Ativo</div>
+    </div>
 
-        const pinValido = await bcrypt.compare(pin.toString(), usuario.rows[0].pin_hash);
-        if (!pinValido)
-            return res.status(400).json({ error: 'PIN de acesso incorreto.' });
+    <script>
+        // Versão da Inteligência Sincronizada: v9.0
+        const API_URL = window.location.origin; 
+        let tokenLocal = localStorage.getItem('asb_jwt_token');
+        let emailUsuarioLogado = localStorage.getItem('asb_user_email') || '';
+        let meuIdUsuario = null;
 
-        const token = jwt.sign({ id: usuario.rows[0].id }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({
-            token,
-            user: { id: usuario.rows[0].id, nome: usuario.rows[0].nome, email: usuario.rows[0].email }
-        });
-    } catch (err) {
-        console.error('[pin]', err.message);
-        res.status(500).json({ error: 'Erro interno na verificação do PIN.' });
-    }
-});
+        let listaRadares = [];
+        const mapa = L.map('mapa').setView([-16.6869, -49.2648], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapa);
 
-function verificarTokenJWT(req, res, next) {
-    const token = req.headers['authorization'];
-    if (!token)
-        return res.status(401).json({ error: 'Acesso negado. Token não fornecido.' });
-    try {
-        const verificado = jwt.verify(token.replace('Bearer ', ''), JWT_SECRET);
-        req.user = verificado;
-        next();
-    } catch (err) {
-        res.status(400).json({ error: 'Token inválido ou expirado.' });
-    }
-}
+        let marcadorMotorista = null;
+        let minhaLatAtual = 0, minhaLonAtual = 0;
+        let velocidadeGlobal = 0, limiteGlobal = 60;
+        let distGlobal = "", statusTextoGlobal = "VIA MONITORADA";
+        let audioCtx = null;
 
-app.get('/api/auth/me', verificarTokenJWT, async (req, res) => {
-    try {
-        const usuario = await pool.query(
-            'SELECT id, nome, email FROM users WHERE id = $1',
-            [req.user.id]
-        );
-        res.json(usuario.rows[0]);
-    } catch (err) {
-        console.error('[me]', err.message);
-        res.status(500).json({ error: 'Erro ao buscar dados do perfil.' });
-    }
-});
+        function alternarFluxoAuth(tela) {
+            document.getElementById('tela-login').style.display = tela === 'login' ? 'flex' : 'none';
+            document.getElementById('tela-pin').style.display = tela === 'pin' ? 'flex' : 'none';
+            document.getElementById('tela-cadastro').style.display = tela === 'cadastro' ? 'flex' : 'none';
+            if (tela === 'pin') document.getElementById('pin-email').value = document.getElementById('login-email').value;
+        }
 
-app.get('/api/radares', async (req, res) => {
-    try {
-        const todosRadares = await pool.query('SELECT * FROM radares ORDER BY criado_em DESC');
-        res.json(todosRadares.rows);
-    } catch (err) {
-        console.error('[radares GET]', err.message);
-        res.status(500).json({ error: 'Erro ao sincronizar banco de radares.' });
-    }
-});
+        async function checarAutenticacaoExistente() {
+            if (tokenLocal) {
+                try {
+                    const resposta = await fetch(`${API_URL}/api/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${tokenLocal}` }
+                    });
+                    if (resposta.ok) {
+                        const dados = await resposta.json();
+                        meuIdUsuario = dados.id;
+                        entrarNoAplicativo();
+                    } else {
+                        limparTokens();
+                    }
+                } catch (e) { entrarNoAplicativo(); }
+            }
+        }
 
-app.post('/api/radares', verificarTokenJWT, async (req, res) => {
-    const { local, lat, lon, velocidade } = req.body;
-    try {
-        if (!local || !lat || !lon || !velocidade)
-            return res.status(400).json({ error: 'Dados geográficos incompletos.' });
+        function limparTokens() {
+            localStorage.removeItem('asb_jwt_token');
+            tokenLocal = null;
+            alternarFluxoAuth('login');
+        }
 
-        const novoRadar = await pool.query(
-            'INSERT INTO radares (user_id, local, lat, lon, velocidade) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [req.user.id, local, lat, lon, velocidade]
-        );
-        res.json(novoRadar.rows[0]);
-    } catch (err) {
-        console.error('[radares POST]', err.message);
-        res.status(500).json({ error: 'Erro ao publicar novo radar.' });
-    }
-});
+        function entrarNoAplicativo() {
+            document.getElementById('tela-login').style.display = 'none';
+            document.getElementById('tela-pin').style.display = 'none';
+            document.getElementById('tela-cadastro').style.display = 'none';
+            document.getElementById('app-container').style.display = 'flex';
+            mapa.invalidateSize();
+            sincronizarBancoDeRadares();
+            inicializarRastreamentoGPS();
+        }
 
-app.delete('/api/radares/:id', verificarTokenJWT, async (req, res) => {
-    const { id } = req.params;
-    try {
-        const radar = await pool.query('SELECT * FROM radares WHERE id = $1', [id]);
-        if (radar.rows.length === 0)
-            return res.status(404).json({ error: 'Radar não localizado.' });
+        async function executarLoginTradicional() {
+            const email = document.getElementById('login-email').value;
+            const senha = document.getElementById('login-senha').value;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha })
+                });
+                const dados = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('asb_jwt_token', dados.token);
+                    localStorage.setItem('asb_user_email', email);
+                    tokenLocal = dados.token;
+                    meuIdUsuario = dados.user.id;
+                    entrarNoAplicativo();
+                } else { alert(dados.error); }
+            } catch (e) { alert("Erro de conexão com o servidor."); }
+        }
 
-        if (radar.rows[0].user_id !== req.user.id)
-            return res.status(403).json({ error: 'Permissão negada. Você só pode remover radares inseridos por você mesmo.' });
+        async function executarLoginPorPIN() {
+            const email = document.getElementById('pin-email').value;
+            const pin = document.getElementById('login-pin').value;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/pin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, pin })
+                });
+                const dados = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('asb_jwt_token', dados.token);
+                    localStorage.setItem('asb_user_email', email);
+                    tokenLocal = dados.token;
+                    meuIdUsuario = dados.user.id;
+                    entrarNoAplicativo();
+                } else { alert(dados.error); }
+            } catch (e) { alert("Erro ao validar PIN."); }
+        }
 
-        await pool.query('DELETE FROM radares WHERE id = $1', [id]);
-        res.json({ success: true, message: 'Radar removido com sucesso da malha metropolitana.' });
-    } catch (err) {
-        console.error('[radares DELETE]', err.message);
-        res.status(500).json({ error: 'Erro ao processar exclusão do ponto.' });
-    }
-});
+        async function executarCadastroMotorista() {
+            const nome = document.getElementById('cad-nome').value;
+            const email = document.getElementById('cad-email').value;
+            const senha = document.getElementById('cad-senha').value;
+            const pin = document.getElementById('cad-pin').value;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, email, senha, pin })
+                });
+                const dados = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('asb_jwt_token', dados.token);
+                    localStorage.setItem('asb_user_email', email);
+                    tokenLocal = dados.token;
+                    meuIdUsuario = dados.user.id;
+                    entrarNoAplicativo();
+                } else { alert(dados.error); }
+            } catch (e) { alert("Erro no cadastro."); }
+        }
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.get(/^\/(.*)$/, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+        async function sincronizarBancoDeRadares() {
+            try {
+                const res = await fetch(`${API_URL}/api/radares`);
+                if (res.ok) {
+                    listaRadares = await res.json();
+                    plotarRadaresNoMapa();
+                    atualizarTabelaGerenciamento();
+                }
+            } catch (e) { console.log("Roteamento operando com cache local."); }
+        }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`=== ANTI-MULTA GOIÂNIA SERVIDO NA PORTA ${PORT} ===`);
-});
+        function plotarRadaresNoMapa() {
+            mapa.eachLayer(layer => {
+                if (layer instanceof L.Circle || (layer instanceof L.CircleMarker && layer !== marcadorMotorista)) {
+                    mapa.removeLayer(layer);
+                }
+            });
+
+            listaRadares.forEach(radar => {
+                const souDono = radar.user_id === meuIdUsuario;
+                const corPonto = souDono ? '#0079f2' : '#ff1744';
+
+                L.circle([radar.lat, radar.lon], {
+                    color: corPonto, fillColor: corPonto, fillOpacity: 0.2, radius: 200
+                }).addTo(mapa);
+
+                L.circleMarker([radar.lat, radar.lon], {
+                    radius: 6, color: '#ffffff', fillColor: corPonto, fillOpacity: 1
+                }).addTo(mapa).bindPopup(`<b>${radar.local}</b><br>Limite: ${radar.velocidade} km/h`);
+            });
+        }
+
+        function abrirModalRadar() {
+            if (minhaLatAtual === 0) return alert("Aguardando sinal estável do GPS.");
+            document.getElementById('modal-fixar-radar').style.display = 'block';
+        }
+        function fecharModalRadar() { document.getElementById('modal-fixar-radar').style.display = 'none'; }
+
+        async function publicarRadarBancoCompartilhado(velOpcao) {
+            const novoRadar = {
+                local: `Radar Móvel Fixado (${velOpcao} km/h)`,
+                lat: minhaLatAtual,
+                lon: minhaLonAtual,
+                velocidade: velOpcao
+            };
+            try {
+                const res = await fetch(`${API_URL}/api/radares`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${tokenLocal}`
+                    },
+                    body: JSON.stringify(novoRadar)
+                });
+                if (res.ok) {
+                    fecharModalRadar();
+                    sincronizarBancoDeRadares();
+                    // Registra a fixação no log imediatamente como passagem segura de configuração
+                    adicionarLinhaPassagemHistorico("AGORA", "Fixou Novo Ponto", `${velOpcao} km/h`, "verde");
+                }
+            } catch (e) { alert("Erro ao compartilhar ponto na nuvem."); }
+        }
+
+        // FUNÇÃO QUE DETECTA E ATUALIZA O HISTÓRICO COM AS CORES SEMAFÓRICAS ORIGINAIS
+        function atualizarTabelaGerenciamento() {
+            const tabela = document.getElementById('corpo-historico');
+            tabela.innerHTML = '';
+            
+            listaRadares.forEach(radar => {
+                const tr = document.createElement('tr');
+                
+                // Formatação do timestamp vindo do PostgreSQL
+                const dataRadar = radar.criado_em ? new Date(radar.criado_em) : new Date();
+                const horaFormatada = dataRadar.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                // Lógica de cores baseada estritamente na velocidade de passagem do limite configurado
+                let classeCor = "linha-passagem-verde";
+                if (radar.velocidade > 60) {
+                    classeCor = "linha-passagem-vermelha";
+                } else if (radar.velocidade >= 50) {
+                    classeCor = "linha-passagem-amarela";
+                }
+
+                const souDono = radar.user_id === meuIdUsuario;
+                const botaoDeletar = souDono ? `<button class="btn-deletar-radar" onclick="removerRadarManual(${radar.id})">🗑️ REMOVER</button>` : `<span style="color:#666;">Compartilhado</span>`;
+
+                tr.innerHTML = `
+                    <td>${horaFormatada}</td>
+                    <td>${radar.local}</td>
+                    <td class="${classeCor}">${radar.velocidade} KM/H</td>
+                    <td>${botaoDeletar}</td>
+                `;
+                tabela.appendChild(tr);
+            });
+        }
+
+        // Adiciona passagens em tempo real diretamente no topo da tabela sem resetar a lista
+        function adicionarLinhaPassagemHistorico(hora, via, velocidade, cor) {
+            const tabela = document.getElementById('corpo-historico');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${hora}</td>
+                <td>${via}</td>
+                <td class="linha-passagem-${cor}">${velocidade}</td>
+                <td><span style="color:#555;">Log GPS</span></td>
+            `;
+            tabela.insertBefore(tr, tabela.firstChild);
+        }
+
+        async function removerRadarManual(id) {
+            if (!confirm("Deseja deletar este radar permanentemente da nuvem?")) return;
+            try {
+                const res = await fetch(`${API_URL}/api/radares/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${tokenLocal}` }
+                });
+                if (res.ok) sincronizarBancoDeRadares();
+            } catch (e) { alert("Erro ao deletar ponto."); }
+        }
+
+        function liberarAudioNavegador() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function emitirBipAviso() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        }
+
+        function inicializarRastreamentoGPS() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(pos => {
+                    minhaLatAtual = pos.coords.latitude;
+                    minhaLonAtual = pos.coords.longitude;
+                    velocidadeGlobal = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
+                    
+                    document.getElementById('vel-atual').innerText = velocidadGlobal;
+                    document.getElementById('info-gps').innerText = `Precisão GPS: ${parseInt(pos.coords.accuracy)}m | Nuvem Ativa`;
+
+                    if (!marcadorMotorista) {
+                        marcadorMotorista = L.circleMarker([minhaLatAtual, minhaLonAtual], { radius: 8, color: '#0079f2', fillColor: '#fff', fillOpacity: 1 }).addTo(mapa);
+                    } else { marcadorMotorista.setLatLng([minhaLatAtual, minhaLonAtual]); }
+                    mapa.setView([minhaLatAtual, minhaLonAtual], 16);
+
+                    let radarAlvo = null, menorDist = Infinity;
+                    listaRadares.forEach(r => {
+                        const d = calcularDistancia(minhaLatAtual, minhaLonAtual, r.lat, r.lon);
+                        if (d < menorDist) { menorDist = d; if (d <= 200) radarAlvo = r; }
+                    });
+
+                    if (radarAlvo) {
+                        limiteGlobal = radarAlvo.velocidade;
+                        distGlobal = `(${parseInt(menorDist)}m)`;
+                        statusTextoGlobal = "⚠️ RADAR À FRENTE";
+                        document.getElementById('texto-status').innerText = `⚠️ APROXIMAÇÃO: ${radarAlvo.local}`;
+                        document.getElementById('distancia-radar').innerText = `${parseInt(menorDist)}m`;
+                        if (velocidadeGlobal >= limiteGlobal * 0.9) emitirBipAviso();
+                        
+                        // Executa log de auditoria ao cruzar o raio de proximidade do ponto
+                        if (parseInt(menorDist) < 50) {
+                            const h = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                            let corLog = "verde";
+                            if(velocidadeGlobal > limiteGlobal) corLog = "vermelha";
+                            else if(velocidadeGlobal >= limiteGlobal * 0.9) corLog = "amarela";
+                            adicionarLinhaPassagemHistorico(h, radarAlvo.local, `${velocidadeGlobal} KM/H`, corLog);
+                        }
+                    } else {
+                        limiteGlobal = 60; distGlobal = ""; statusTextoGlobal = "VIA MONITORADA";
+                        document.getElementById('texto-status').innerText = "SINALIZADOR DE VIA ACTIVO";
+                        document.getElementById('distancia-radar').innerText = "";
+                    }
+
+                    document.getElementById('vel-maxima').innerText = limiteGlobal;
+                    document.getElementById('vel-minima').innerText = limiteGlobal / 2;
+
+                    const v = document.getElementById('luz-verde'), a = document.getElementById('luz-amarela'), r = document.getElementById('luz-vermelha');
+                    v.classList.remove('ativa'); a.classList.remove('ativa'); r.classList.remove('ativa');
+                    if (velocidadeGlobal > limiteGlobal) r.classList.add('ativa');
+                    else if (velocidadeGlobal >= limiteGlobal * 0.9) a.classList.add('ativa');
+                    else v.classList.add('ativa');
+
+                }, null, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+            }
+        }
+
+        const canvas = document.getElementById('canvas-pip'), ctx = canvas.getContext('2d'), video = document.getElementById('video-pip');
+        let pipAtivo = false;
+
+        function desenharPainelFlutuante() {
+            ctx.fillStyle = '#1e1e1e'; ctx.fillRect(0, 0, 500, 500);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 160px Arial'; ctx.textAlign = 'center'; ctx.fillText(velocidadeGlobal, 250, 240);
+            ctx.font = 'bold 28px Arial'; ctx.fillStyle = '#888888'; ctx.fillText('KM/H', 250, 295);
+            ctx.fillStyle = '#ffea00'; ctx.font = 'bold 28px Arial'; ctx.fillText(statusTextoGlobal, 250, 375);
+            ctx.fillStyle = '#aaaaaa'; ctx.font = '24px Arial'; ctx.fillText(`Limite Via: ${limiteGlobal} km/h ${distGlobal}`, 250, 425);
+            
+            ctx.fillStyle = '#333333';
+            ctx.beginPath(); ctx.arc(60, 100, 28, 0, 2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(60, 200, 28, 0, 2*Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(60, 300, 28, 0, 2*Math.PI); ctx.fill();
+
+            if (velocidadeGlobal > limiteGlobal) { ctx.fillStyle = '#ff1744'; ctx.beginPath(); ctx.arc(60, 100, 25, 0, 2*Math.PI); ctx.fill(); }
+            else if (velocidadeGlobal >= limiteGlobal * 0.9) { ctx.fillStyle = '#ffea00'; ctx.beginPath(); ctx.arc(60, 200, 25, 0, 2*Math.PI); ctx.fill(); }
+            else { ctx.fillStyle = '#00e676'; ctx.beginPath(); ctx.arc(60, 300, 25, 0, 2*Math.PI); ctx.fill(); }
+
+            if (pipAtivo) requestAnimationFrame(desenharPainelFlutuante);
+        }
+
+        async function alternarModoFlutuanteSobreposto() {
+            try {
+                liberarAudioNavegador();
+                if (!pipAtivo) {
+                    video.srcObject = canvas.captureStream(15);
+                    await video.play(); await video.requestPictureInPicture();
+                    pipAtivo = true; desenharPainelFlutuante();
+                } else { document.exitPictureInPicture(); pipAtivo = false; }
+            } catch (e) { alert("Dê um toque no mapa antes de ativar a sobreposição."); }
+        }
+        video.addEventListener('leavepictureinpicture', () => { pipAtivo = false; });
+
+        function abrirTelaHistorico() { document.getElementById('tela-historico').style.display = 'flex'; }
+        function fecharTelaHistorico() { document.getElementById('tela-historico').style.display = 'none'; }
+        document.body.addEventListener('click', liberarAudioNavegador, { once: false });
+        checarAutenticacaoExistente();
+    </script>
+</body>
+</html>
