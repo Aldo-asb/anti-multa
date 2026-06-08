@@ -596,6 +596,7 @@
 
             document.getElementById('vel-maxima').innerText = limiteGlobal;
             document.getElementById('vel-minima').innerText = Math.round(limiteGlobal / 2);
+            atualizarOverlay();
 
             // Semáforo
             const lv = document.getElementById('luz-verde');
@@ -640,21 +641,90 @@
         if (pipAtivo) requestAnimationFrame(desenharPainelFlutuante);
     }
 
+    // Prepara o vídeo PiP logo no início para evitar bloqueio do navegador
+    let pipPreparado = false;
+    async function prepararPip() {
+        if (pipPreparado) return;
+        try {
+            video.srcObject = canvas.captureStream(15);
+            await video.play();
+            pipPreparado = true;
+        } catch(e) {}
+    }
+    // Prepara assim que o usuário toca na tela pela primeira vez
+    document.body.addEventListener('click', prepararPip, { once: false });
+
     async function alternarModoFlutuante() {
         try {
             liberarAudioNavegador();
-            if (!pipAtivo) {
-                video.srcObject = canvas.captureStream(15);
-                await video.play();
+            await prepararPip();
+
+            if (!document.pictureInPictureElement) {
+                // Desenha um frame antes de pedir PiP
+                desenharFramePip();
+                await new Promise(r => setTimeout(r, 100));
                 await video.requestPictureInPicture();
                 pipAtivo = true;
                 desenharPainelFlutuante();
             } else {
-                document.exitPictureInPicture();
+                await document.exitPictureInPicture();
                 pipAtivo = false;
             }
-        } catch (e) { alert('Dê um toque na tela antes de ativar a sobreposição.'); }
+        } catch (e) {
+            console.error('PiP erro:', e);
+            // Fallback: abre tela sobreposta interna se PiP não suportado
+            mostrarVelocimetroSobreposto();
+        }
     }
+
+    function desenharFramePip() {
+        ctx.fillStyle = '#1e1e1e'; ctx.fillRect(0, 0, 500, 500);
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 160px Arial'; ctx.textAlign = 'center';
+        ctx.fillText(velocidadeGlobal, 250, 240);
+        ctx.font = 'bold 28px Arial'; ctx.fillStyle = '#888'; ctx.fillText('KM/H', 250, 295);
+    }
+
+    // Fallback para navegadores sem suporte a PiP
+    function mostrarVelocimetroSobreposto() {
+        let overlay = document.getElementById('overlay-vel');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'overlay-vel';
+            overlay.style.cssText = `
+                position:fixed; bottom:80px; right:10px; z-index:999;
+                background:#1e1e1e; border:3px solid #0079f2; border-radius:16px;
+                padding:15px 20px; text-align:center; min-width:120px;
+                box-shadow:0 4px 20px rgba(0,0,0,0.8); cursor:move;
+            `;
+            overlay.innerHTML = `
+                <div id="ov-vel" style="font-size:56px;font-weight:bold;color:#fff;line-height:1;">0</div>
+                <div style="font-size:12px;color:#888;font-weight:bold;">KM/H</div>
+                <div id="ov-status" style="font-size:11px;color:#ffea00;margin-top:4px;">VIA LIVRE</div>
+                <div id="ov-semaforo" style="font-size:20px;margin-top:6px;">🟢</div>
+                <button onclick="document.getElementById('overlay-vel').remove()" 
+                    style="margin-top:8px;background:#c62828;color:white;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">✕ FECHAR</button>
+            `;
+            document.body.appendChild(overlay);
+            // Atualiza o overlay junto com o GPS
+            overlayAtivo = true;
+        } else {
+            overlay.remove();
+            overlayAtivo = false;
+        }
+    }
+    let overlayAtivo = false;
+
+    // Atualiza overlay se estiver ativo
+    function atualizarOverlay() {
+        if (!overlayAtivo) return;
+        const ov = document.getElementById('overlay-vel');
+        if (!ov) return;
+        document.getElementById('ov-vel').innerText = velocidadeGlobal;
+        document.getElementById('ov-status').innerText = statusTextoGlobal;
+        const emoji = velocidadeGlobal > limiteGlobal ? '🔴' : velocidadeGlobal >= limiteGlobal * 0.9 ? '🟡' : '🟢';
+        document.getElementById('ov-semaforo').innerText = emoji;
+    }
+
     video.addEventListener('leavepictureinpicture', () => { pipAtivo = false; });
 
     // =====================================================================
