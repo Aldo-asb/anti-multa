@@ -1,4 +1,4 @@
-// Servidor de Produção Full-Stack: v13.0
+// Servidor de Produção Full-Stack: v15.0
 // Anti-Multa Goiânia — Backend Principal
 require('dotenv').config();
 
@@ -14,6 +14,7 @@ app.use(express.json());
 app.use(cors());
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const ADMIN_EMAIL = 'asbautomacao@gmail.com';
 
 const pool = new Pool({
     host:                    'aws-1-sa-east-1.pooler.supabase.com',
@@ -27,6 +28,9 @@ const pool = new Pool({
     connectionTimeoutMillis: 10000,
 });
 
+// =====================================================================================
+// INICIALIZAÇÃO DO BANCO
+// =====================================================================================
 async function inicializarBancoDeDados() {
     try {
         const client = await pool.connect();
@@ -38,11 +42,16 @@ async function inicializarBancoDeDados() {
                 id         SERIAL PRIMARY KEY,
                 nome       VARCHAR(100) NOT NULL,
                 email      VARCHAR(100) UNIQUE NOT NULL,
+                telefone   VARCHAR(20),
                 senha_hash VARCHAR(255) NOT NULL,
                 pin_hash   VARCHAR(255) NOT NULL,
+                is_admin   BOOLEAN DEFAULT FALSE,
                 criado_em  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telefone VARCHAR(20);`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;`);
+        await pool.query(`UPDATE users SET is_admin = TRUE WHERE email = $1`, [ADMIN_EMAIL]);
 
         await pool.query(`
             CREATE TABLE IF NOT EXISTS radares (
@@ -56,160 +65,206 @@ async function inicializarBancoDeDados() {
             );
         `);
 
+        // NOVA TABELA: limites de via
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS limites_via (
+                id         SERIAL PRIMARY KEY,
+                user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                descricao  VARCHAR(255) NOT NULL,
+                lat        DOUBLE PRECISION NOT NULL,
+                lon        DOUBLE PRECISION NOT NULL,
+                velocidade INTEGER NOT NULL,
+                validado   BOOLEAN DEFAULT FALSE,
+                criado_em  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
         console.log('=== BANCO DE DADOS POSTGRESQL SINCRONIZADO COM SUCESSO ===');
     } catch (err) {
-        console.error('❌ ERRO CRÍTICO AO INICIALIZAR BANCO DE DADOS:', err.message);
-        console.error('   Code:', err.code);
+        console.error('❌ ERRO CRÍTICO:', err.message);
         process.exit(1);
     }
 }
 inicializarBancoDeDados();
 
+// =====================================================================================
+// MIDDLEWARES
+// =====================================================================================
+function verificarTokenJWT(req, res, next) {
+    const token = req.headers['authorization'];
+    if (!token) return res.status(401).json({ error: 'Token não fornecido.' });
+    try {
+        req.user = jwt.verify(token.replace('Bearer ', ''), JWT_SECRET);
+        next();
+    } catch { res.status(400).json({ error: 'Token inválido.' }); }
+}
+
+function verificarAdmin(req, res, next) {
+    if (!req.user.is_admin) return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
+    next();
+}
+
+// =====================================================================================
+// AUTENTICAÇÃO
+// =====================================================================================
 app.post('/api/auth/register', async (req, res) => {
-    const { nome, email, senha, pin } = req.body;
+    const { nome, email, telefone, senha, pin } = req.body;
     try {
         if (!nome || !email || !senha || !pin)
-            return res.status(400).json({ error: 'Preencha todos os campos.' });
-
+            return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
         const senhaHash = await bcrypt.hash(senha, 10);
         const pinHash   = await bcrypt.hash(pin.toString(), 10);
-
-        const novoUsuario = await pool.query(
-            'INSERT INTO users (nome, email, senha_hash, pin_hash) VALUES ($1, $2, $3, $4) RETURNING id, nome, email',
-            [nome, email, senhaHash, pinHash]
+        const isAdmin   = email === ADMIN_EMAIL;
+        const novo = await pool.query(
+            'INSERT INTO users (nome, email, telefone, senha_hash, pin_hash, is_admin) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, nome, email, is_admin',
+            [nome, email, telefone || null, senhaHash, pinHash, isAdmin]
         );
-
-        const token = jwt.sign({ id: novoUsuario.rows[0].id }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({ token, user: novoUsuario.rows[0] });
+        const token = jwt.sign({ id: novo.rows[0].id, is_admin: isAdmin }, JWT_SECRET, { expiresIn: '30d' });
+        res.json({ token, user: novo.rows[0] });
     } catch (err) {
-        if (err.code === '23505')
-            return res.status(400).json({ error: 'Este e-mail já está cadastrado.' });
-        console.error('[register]', err.message);
-        res.status(500).json({ error: 'Erro interno no servidor de cadastro.' });
+        if (err.code === '23505') return res.status(400).json({ error: 'E-mail já cadastrado.' });
+        res.status(500).json({ error: 'Erro no cadastro.' });
     }
 });
 
 app.post('/api/auth/login', async (req, res) => {
     const { email, senha } = req.body;
     try {
-        const usuario = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (usuario.rows.length === 0)
+        const u = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (!u.rows.length) return res.status(400).json({ error: 'E-mail ou senha inválidos.' });
+        if (!await bcrypt.compare(senha, u.rows[0].senha_hash))
             return res.status(400).json({ error: 'E-mail ou senha inválidos.' });
-
-        const senhaValida = await bcrypt.compare(senha, usuario.rows[0].senha_hash);
-        if (!senhaValida)
-            return res.status(400).json({ error: 'E-mail ou senha inválidos.' });
-
-        const token = jwt.sign({ id: usuario.rows[0].id }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({
-            token,
-            user: { id: usuario.rows[0].id, nome: usuario.rows[0].nome, email: usuario.rows[0].email }
-        });
-    } catch (err) {
-        console.error('[login]', err.message);
-        res.status(500).json({ error: 'Erro interno no servidor de login.' });
-    }
+        const token = jwt.sign({ id: u.rows[0].id, is_admin: u.rows[0].is_admin }, JWT_SECRET, { expiresIn: '30d' });
+        res.json({ token, user: { id: u.rows[0].id, nome: u.rows[0].nome, email: u.rows[0].email, is_admin: u.rows[0].is_admin } });
+    } catch (err) { res.status(500).json({ error: 'Erro no login.' }); }
 });
 
 app.post('/api/auth/pin', async (req, res) => {
     const { email, pin } = req.body;
     try {
-        const usuario = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (usuario.rows.length === 0)
-            return res.status(400).json({ error: 'Motorista não encontrado.' });
-
-        const pinValido = await bcrypt.compare(pin.toString(), usuario.rows[0].pin_hash);
-        if (!pinValido)
-            return res.status(400).json({ error: 'PIN de acesso incorreto.' });
-
-        const token = jwt.sign({ id: usuario.rows[0].id }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({
-            token,
-            user: { id: usuario.rows[0].id, nome: usuario.rows[0].nome, email: usuario.rows[0].email }
-        });
-    } catch (err) {
-        console.error('[pin]', err.message);
-        res.status(500).json({ error: 'Erro interno na verificação do PIN.' });
-    }
+        const u = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (!u.rows.length) return res.status(400).json({ error: 'Motorista não encontrado.' });
+        if (!await bcrypt.compare(pin.toString(), u.rows[0].pin_hash))
+            return res.status(400).json({ error: 'PIN incorreto.' });
+        const token = jwt.sign({ id: u.rows[0].id, is_admin: u.rows[0].is_admin }, JWT_SECRET, { expiresIn: '30d' });
+        res.json({ token, user: { id: u.rows[0].id, nome: u.rows[0].nome, email: u.rows[0].email, is_admin: u.rows[0].is_admin } });
+    } catch (err) { res.status(500).json({ error: 'Erro no PIN.' }); }
 });
-
-function verificarTokenJWT(req, res, next) {
-    const token = req.headers['authorization'];
-    if (!token)
-        return res.status(401).json({ error: 'Acesso negado. Token não fornecido.' });
-    try {
-        const verificado = jwt.verify(token.replace('Bearer ', ''), JWT_SECRET);
-        req.user = verificado;
-        next();
-    } catch (err) {
-        res.status(400).json({ error: 'Token inválido ou expirado.' });
-    }
-}
 
 app.get('/api/auth/me', verificarTokenJWT, async (req, res) => {
     try {
-        const usuario = await pool.query(
-            'SELECT id, nome, email FROM users WHERE id = $1',
-            [req.user.id]
-        );
-        res.json(usuario.rows[0]);
-    } catch (err) {
-        console.error('[me]', err.message);
-        res.status(500).json({ error: 'Erro ao buscar dados do perfil.' });
-    }
+        const u = await pool.query('SELECT id, nome, email, telefone, is_admin FROM users WHERE id = $1', [req.user.id]);
+        res.json(u.rows[0]);
+    } catch { res.status(500).json({ error: 'Erro ao buscar perfil.' }); }
 });
 
+// =====================================================================================
+// ADMIN
+// =====================================================================================
+app.get('/api/admin/usuarios', verificarTokenJWT, verificarAdmin, async (req, res) => {
+    try {
+        const u = await pool.query('SELECT id, nome, email, telefone, is_admin, criado_em FROM users ORDER BY criado_em DESC');
+        res.json(u.rows);
+    } catch { res.status(500).json({ error: 'Erro ao buscar usuários.' }); }
+});
+
+// Admin valida um limite de via
+app.patch('/api/limites-via/:id/validar', verificarTokenJWT, verificarAdmin, async (req, res) => {
+    try {
+        await pool.query('UPDATE limites_via SET validado = TRUE WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch { res.status(500).json({ error: 'Erro ao validar.' }); }
+});
+
+// Admin remove qualquer limite
+app.delete('/api/admin/limites-via/:id', verificarTokenJWT, verificarAdmin, async (req, res) => {
+    try {
+        await pool.query('DELETE FROM limites_via WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch { res.status(500).json({ error: 'Erro ao remover.' }); }
+});
+
+// =====================================================================================
+// RADARES
+// =====================================================================================
 app.get('/api/radares', async (req, res) => {
     try {
-        const todosRadares = await pool.query('SELECT * FROM radares ORDER BY criado_em DESC');
-        res.json(todosRadares.rows);
-    } catch (err) {
-        console.error('[radares GET]', err.message);
-        res.status(500).json({ error: 'Erro ao sincronizar banco de radares.' });
-    }
+        const r = await pool.query(
+            `SELECT r.*, u.nome as nome_usuario FROM radares r
+             LEFT JOIN users u ON r.user_id = u.id ORDER BY r.criado_em DESC`
+        );
+        res.json(r.rows);
+    } catch { res.status(500).json({ error: 'Erro ao buscar radares.' }); }
 });
 
 app.post('/api/radares', verificarTokenJWT, async (req, res) => {
     const { local, lat, lon, velocidade } = req.body;
     try {
         if (!local || !lat || !lon || !velocidade)
-            return res.status(400).json({ error: 'Dados geográficos incompletos.' });
-
-        const novoRadar = await pool.query(
-            'INSERT INTO radares (user_id, local, lat, lon, velocidade) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            return res.status(400).json({ error: 'Dados incompletos.' });
+        const r = await pool.query(
+            'INSERT INTO radares (user_id, local, lat, lon, velocidade) VALUES ($1,$2,$3,$4,$5) RETURNING *',
             [req.user.id, local, lat, lon, velocidade]
         );
-        res.json(novoRadar.rows[0]);
-    } catch (err) {
-        console.error('[radares POST]', err.message);
-        res.status(500).json({ error: 'Erro ao publicar novo radar.' });
-    }
+        res.json(r.rows[0]);
+    } catch { res.status(500).json({ error: 'Erro ao publicar radar.' }); }
 });
 
 app.delete('/api/radares/:id', verificarTokenJWT, async (req, res) => {
-    const { id } = req.params;
     try {
-        const radar = await pool.query('SELECT * FROM radares WHERE id = $1', [id]);
-        if (radar.rows.length === 0)
-            return res.status(404).json({ error: 'Radar não localizado.' });
-
-        if (radar.rows[0].user_id !== req.user.id)
-            return res.status(403).json({ error: 'Permissão negada. Você só pode remover radares inseridos por você mesmo.' });
-
-        await pool.query('DELETE FROM radares WHERE id = $1', [id]);
-        res.json({ success: true, message: 'Radar removido com sucesso da malha metropolitana.' });
-    } catch (err) {
-        console.error('[radares DELETE]', err.message);
-        res.status(500).json({ error: 'Erro ao processar exclusão do ponto.' });
-    }
+        const r = await pool.query('SELECT * FROM radares WHERE id = $1', [req.params.id]);
+        if (!r.rows.length) return res.status(404).json({ error: 'Radar não encontrado.' });
+        if (r.rows[0].user_id !== req.user.id && !req.user.is_admin)
+            return res.status(403).json({ error: 'Permissão negada.' });
+        await pool.query('DELETE FROM radares WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch { res.status(500).json({ error: 'Erro ao remover radar.' }); }
 });
 
+// =====================================================================================
+// LIMITES DE VIA
+// =====================================================================================
+app.get('/api/limites-via', async (req, res) => {
+    try {
+        const r = await pool.query(
+            `SELECT l.*, u.nome as nome_usuario FROM limites_via l
+             LEFT JOIN users u ON l.user_id = u.id ORDER BY l.criado_em DESC`
+        );
+        res.json(r.rows);
+    } catch { res.status(500).json({ error: 'Erro ao buscar limites.' }); }
+});
+
+app.post('/api/limites-via', verificarTokenJWT, async (req, res) => {
+    const { descricao, lat, lon, velocidade } = req.body;
+    try {
+        if (!descricao || !lat || !lon || !velocidade)
+            return res.status(400).json({ error: 'Dados incompletos.' });
+        const r = await pool.query(
+            'INSERT INTO limites_via (user_id, descricao, lat, lon, velocidade) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+            [req.user.id, descricao, lat, lon, velocidade]
+        );
+        res.json(r.rows[0]);
+    } catch { res.status(500).json({ error: 'Erro ao salvar limite.' }); }
+});
+
+app.delete('/api/limites-via/:id', verificarTokenJWT, async (req, res) => {
+    try {
+        const r = await pool.query('SELECT * FROM limites_via WHERE id = $1', [req.params.id]);
+        if (!r.rows.length) return res.status(404).json({ error: 'Limite não encontrado.' });
+        if (r.rows[0].user_id !== req.user.id && !req.user.is_admin)
+            return res.status(403).json({ error: 'Permissão negada.' });
+        await pool.query('DELETE FROM limites_via WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch { res.status(500).json({ error: 'Erro ao remover limite.' }); }
+});
+
+// =====================================================================================
+// FRONT-END
+// =====================================================================================
 app.use(express.static(path.join(__dirname, 'public')));
 app.get(/^\/(.*)$/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`=== ANTI-MULTA GOIÂNIA SERVIDO NA PORTA ${PORT} ===`);
-});
+app.listen(PORT, () => console.log(`=== ANTI-MULTA GOIÂNIA SERVIDO NA PORTA ${PORT} ===`));
