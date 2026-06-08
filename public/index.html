@@ -8,109 +8,143 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #121212; color: #ffffff; height: 100vh; overflow: hidden; }
+        body { margin:0; padding:0; font-family:Arial,sans-serif; background:#121212; color:#fff; height:100vh; overflow:hidden; }
 
-        /* AUTENTICAÇÃO */
-        .tela-autenticacao { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; padding: 20px; background-color: #1a1c25; }
-        .card-auth { background-color: #23252f; padding: 25px; border-radius: 12px; border: 2px solid #3a3d48; width: 100%; max-width: 360px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); text-align: center; }
-        .card-auth h2 { margin: 0 0 15px 0; color: #0079f2; font-size: 20px; text-transform: uppercase; }
-        .input-auth { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 2px solid #3a3d48; background-color: #15171f; color: white; font-size: 15px; }
-        .btn-auth { width: 100%; padding: 14px; background-color: #0079f2; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-auth-secundario { background: none; border: none; color: #a2a8b2; font-size: 13px; margin-top: 15px; cursor: pointer; text-decoration: underline; display: block; margin: 10px auto 0; }
+        /* AUTH */
+        .tela-autenticacao { display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; padding:20px; background:#1a1c25; }
+        .card-auth { background:#23252f; padding:25px; border-radius:12px; border:2px solid #3a3d48; width:100%; max-width:360px; text-align:center; }
+        .card-auth h2 { margin:0 0 15px; color:#0079f2; font-size:20px; text-transform:uppercase; }
+        .input-auth { width:100%; padding:12px; margin:6px 0; border-radius:6px; border:2px solid #3a3d48; background:#15171f; color:white; font-size:15px; }
+        .btn-auth { width:100%; padding:14px; background:#0079f2; color:white; border:none; border-radius:6px; font-size:16px; font-weight:bold; cursor:pointer; margin-top:10px; }
+        .btn-auth-sec { background:none; border:none; color:#a2a8b2; font-size:13px; margin-top:8px; cursor:pointer; text-decoration:underline; display:block; margin:8px auto 0; }
 
-        /* APP PRINCIPAL */
-        #app-container { display: none; flex-direction: column; height: 100vh; }
+        /* APP */
+        #app-container { display:none; flex-direction:column; height:100vh; }
 
         /* PAINEL SUPERIOR */
-        #painel-superior { padding: 10px 15px; background-color: #1e1e1e; border-bottom: 4px solid #333; display: flex; flex-direction: column; align-items: center; z-index: 10; }
-        #texto-status { font-size: 14px; font-weight: bold; color: #aaa; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-        .dashboard-container { display: flex; align-items: center; justify-content: space-around; width: 100%; max-width: 400px; }
-        .semaforo { background-color: #222; padding: 8px; border-radius: 15px; display: flex; flex-direction: column; gap: 8px; border: 2px solid #444; }
-        .luz { width: 24px; height: 24px; border-radius: 50%; background-color: #333; transition: background-color 0.2s, box-shadow 0.2s; }
-        .luz-verde.ativa { background-color: #00e676; box-shadow: 0 0 15px #00e676; }
-        .luz-amarela.ativa { background-color: #ffea00; box-shadow: 0 0 15px #ffea00; }
-        .luz-vermelha.ativa { background-color: #ff1744; box-shadow: 0 0 15px #ff1744; }
-        #vel-atual { font-size: 65px; font-weight: bold; color: #ffffff; line-height: 1; }
-        .unidade-medida { font-size: 14px; color: #888; font-weight: bold; }
-        .bloco-limites { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #bbb; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; min-width: 110px; }
-        .limite-linha { display: flex; justify-content: space-between; }
-        .limite-valor { font-weight: bold; color: #fff; }
+        #painel-superior { padding:8px 12px; background:#1e1e1e; border-bottom:3px solid #333; display:flex; flex-direction:column; align-items:center; z-index:10; }
+        #texto-status { font-size:13px; font-weight:bold; color:#aaa; margin-bottom:4px; text-transform:uppercase; letter-spacing:1px; }
+        .dashboard-container { display:flex; align-items:center; justify-content:space-around; width:100%; max-width:400px; }
+        .semaforo { background:#222; padding:7px; border-radius:14px; display:flex; flex-direction:column; gap:7px; border:2px solid #444; }
+        .luz { width:22px; height:22px; border-radius:50%; background:#333; transition:background-color 0.2s,box-shadow 0.2s; }
+        .luz-verde.ativa   { background:#00e676; box-shadow:0 0 14px #00e676; }
+        .luz-amarela.ativa { background:#ffea00; box-shadow:0 0 14px #ffea00; }
+        .luz-vermelha.ativa{ background:#ff1744; box-shadow:0 0 14px #ff1744; }
+        #vel-atual { font-size:62px; font-weight:bold; color:#fff; line-height:1; }
+        .unidade-medida { font-size:13px; color:#888; font-weight:bold; }
+        .bloco-limites { display:flex; flex-direction:column; gap:4px; font-size:12px; color:#bbb; background:rgba(0,0,0,0.3); padding:8px 10px; border-radius:8px; min-width:100px; }
+        .limite-linha { display:flex; justify-content:space-between; gap:6px; }
+        .limite-valor { font-weight:bold; color:#fff; }
 
         /* MAPA */
-        #conteudo-central { flex: 1; position: relative; width: 100%; }
-        #mapa { width: 100%; height: 100%; z-index: 1; }
+        #conteudo-central { flex:1; position:relative; width:100%; }
+        #mapa { width:100%; height:100%; z-index:1; }
 
-        /* PAINEL DE BOTÕES — 4 botões */
-        #painel-botoes { display: flex; padding: 10px 8px 14px 8px; background-color: #1e1e1e; gap: 8px; border-top: 2px solid #333; z-index: 10; }
-        .btn-acao { flex: 1; padding: 14px 4px; font-size: 12px; font-weight: bold; color: white; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align: center; line-height: 1.5; }
-        .btn-fixar   { background-color: #f57c00; }
-        .btn-meus    { background-color: #0288d1; }
-        .btn-hist    { background-color: #5c35b5; }
-        .btn-pip     { background-color: #2e7d32; }
+        /* BARRA BUSCA */
+        #barra-busca { position:absolute; top:10px; left:10px; z-index:100; display:flex; gap:6px; width:calc(100% - 110px); }
+        #input-busca { flex:1; padding:8px 12px; border-radius:8px; border:2px solid #3a3d48; background:#1e1e1e; color:white; font-size:14px; }
+        #btn-buscar { background:#0079f2; color:white; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:16px; }
+        #resultados-busca { position:absolute; top:50px; left:10px; z-index:200; background:#1e1e1e; border:1px solid #444; border-radius:8px; width:calc(100% - 110px); max-height:200px; overflow-y:auto; display:none; }
+        .item-busca { padding:10px 12px; border-bottom:1px solid #333; cursor:pointer; font-size:13px; color:#ddd; }
 
-        #info-gps { padding: 5px; font-size: 10px; text-align: center; background-color: #111; color: #888; z-index: 10; }
+        /* BOTÕES LATERAIS DO MAPA */
+        #btns-mapa-lateral { position:absolute; top:10px; right:10px; z-index:100; display:flex; flex-direction:column; gap:8px; }
+        .btn-mapa-lat { background:#1e1e1e; border:2px solid #444; border-radius:10px; padding:8px 10px; text-align:center; cursor:pointer; font-size:10px; font-weight:bold; color:#fff; min-width:60px; }
+        .btn-limite-via-lat { border-color:#ffea00; color:#ffea00; }
+        .btn-limite-via-lat span { display:block; font-size:20px; color:#fff; font-weight:bold; }
 
-        /* MODAL FIXAR RADAR */
-        #modal-fixar-radar { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #1e1e1e; border: 3px solid #f57c00; border-radius: 15px; padding: 20px; z-index: 500; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.8); }
-        #modal-fixar-radar h4 { margin: 0 0 15px 0; color: #f57c00; font-size: 16px; }
-        .container-botoes-vel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-        .btn-vel-opcao { background-color: #333; color: white; border: 2px solid #f57c00; padding: 18px; font-size: 22px; font-weight: bold; border-radius: 8px; cursor: pointer; }
-        .btn-vel-opcao:active { background-color: #f57c00; }
-        .btn-cancelar-radar { background-color: #555; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        /* BOTÕES DE AÇÃO */
+        #painel-botoes { display:flex; padding:10px 8px 14px; background:#1e1e1e; gap:8px; border-top:2px solid #333; z-index:10; }
+        .btn-acao { flex:1; padding:14px 4px; font-size:12px; font-weight:bold; color:white; border:none; border-radius:10px; cursor:pointer; text-align:center; line-height:1.5; }
+        .btn-fixar { background:#f57c00; }
+        .btn-meus  { background:#0288d1; }
+        .btn-hist  { background:#5c35b5; }
+        .btn-pip   { background:#2e7d32; }
 
-        /* TELA MEUS RADARES */
-        .tela-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(18,18,18,0.98); z-index: 300; flex-direction: column; }
-        .topo-overlay { background-color: #1e1e1e; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; }
-        .topo-overlay h3 { margin: 0; color: #ffea00; font-size: 16px; text-transform: uppercase; }
-        .btn-fechar-overlay { background-color: #c62828; color: white; border: none; padding: 8px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-        .corpo-overlay-scroll { flex: 1; overflow-y: auto; padding: 15px; }
-        .tabela-overlay { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .tabela-overlay th { color: #888; padding: 8px 4px; border-bottom: 1px solid #333; text-align: left; }
-        .tabela-overlay td { padding: 10px 4px; border-bottom: 1px solid #222; vertical-align: middle; }
-        .btn-deletar { background-color: #c62828; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        #info-gps { padding:4px; font-size:10px; text-align:center; background:#111; color:#666; }
 
-        /* HISTÓRICO — cores semafóricas */
-        .hist-verde { color: #00e676; font-weight: bold; }
-        .hist-amarelo { color: #ffea00; font-weight: bold; }
-        .hist-vermelho { color: #ff1744; font-weight: bold; }
+        /* MODAIS */
+        .modal-base { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+            background:#1e1e1e; border-radius:15px; padding:20px; z-index:500;
+            width:88%; max-width:340px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.8); }
+        .modal-base h4 { margin:0 0 15px; font-size:16px; }
+        .grid-vel { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px; }
+        .btn-vel { background:#333; color:white; padding:16px; font-size:20px; font-weight:bold; border-radius:8px; cursor:pointer; }
+        .btn-vel:active { opacity:0.7; }
+        .btn-cancelar-modal { background:#555; color:white; border:none; padding:10px; width:100%; border-radius:6px; font-weight:bold; cursor:pointer; }
+
+        #modal-fixar-radar  { border:3px solid #f57c00; }
+        #modal-fixar-radar h4 { color:#f57c00; }
+        #modal-fixar-radar .btn-vel { border:2px solid #f57c00; }
+
+        #modal-limite-via   { border:3px solid #ffea00; }
+        #modal-limite-via h4 { color:#ffea00; }
+        #modal-limite-via .btn-vel { border:2px solid #ffea00; }
+
+        /* POPUP EXCESSO */
+        #popup-velocidade { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(255,23,68,0.93); z-index:900; flex-direction:column;
+            justify-content:center; align-items:center; text-align:center; }
+        #popup-velocidade h1 { font-size:52px; margin:0; color:#fff; }
+        #popup-velocidade p  { font-size:20px; color:#fff; margin:8px 0; }
+        #btn-fechar-popup { background:white; color:#ff1744; border:none; padding:14px 30px; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; margin-top:15px; }
+
+        /* OVERLAYS */
+        .tela-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(18,18,18,0.98); z-index:300; flex-direction:column; }
+        .topo-overlay { background:#1e1e1e; padding:14px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #333; flex-wrap:wrap; gap:8px; }
+        .topo-overlay h3 { margin:0; color:#ffea00; font-size:15px; text-transform:uppercase; }
+        .btn-fechar-overlay { background:#c62828; color:white; border:none; padding:8px 14px; font-weight:bold; border-radius:6px; cursor:pointer; }
+        .corpo-overlay-scroll { flex:1; overflow-y:auto; padding:12px; }
+        .tabela-overlay { width:100%; border-collapse:collapse; font-size:12px; }
+        .tabela-overlay th { color:#888; padding:8px 4px; border-bottom:1px solid #333; text-align:left; font-size:11px; }
+        .tabela-overlay td { padding:9px 4px; border-bottom:1px solid #222; vertical-align:middle; }
+        .btn-deletar { background:#c62828; color:white; border:none; padding:5px 8px; border-radius:4px; font-size:11px; cursor:pointer; }
+        .hist-verde   { color:#00e676; font-weight:bold; }
+        .hist-amarelo { color:#ffea00; font-weight:bold; }
+        .hist-vermelho{ color:#ff1744; font-weight:bold; }
+        .badge-admin  { background:#f57c00; color:white; border-radius:4px; padding:2px 6px; font-size:10px; font-weight:bold; }
+        .badge-validado { background:#2e7d32; color:white; border-radius:4px; padding:2px 6px; font-size:10px; }
+        .badge-pendente { background:#555; color:#aaa; border-radius:4px; padding:2px 6px; font-size:10px; }
 
         /* PIP */
-        #canvas-pip { display: none; }
+        #canvas-pip { display:none; }
     </style>
 </head>
 <body>
 
-<!-- TELAS DE AUTENTICAÇÃO -->
+<!-- AUTH -->
 <div id="tela-login" class="tela-autenticacao">
     <div class="card-auth">
         <h2>🚦 Anti-Multa Goiânia</h2>
-        <input type="email" id="login-email" class="input-auth" placeholder="Seu E-mail">
-        <input type="password" id="login-senha" class="input-auth" placeholder="Sua Senha">
+        <input type="email"    id="login-email" class="input-auth" placeholder="E-mail">
+        <input type="password" id="login-senha" class="input-auth" placeholder="Senha">
         <button class="btn-auth" onclick="executarLoginTradicional()">ENTRAR NO PAINEL</button>
-        <button class="btn-auth-secundario" onclick="alternarFluxoAuth('pin')">Usar PIN de 4 dígitos</button>
-        <button class="btn-auth-secundario" onclick="alternarFluxoAuth('cadastro')">Criar nova conta</button>
+        <button class="btn-auth-sec" onclick="alternarFluxoAuth('pin')">Usar PIN de 4 dígitos</button>
+        <button class="btn-auth-sec" onclick="alternarFluxoAuth('cadastro')">Criar nova conta</button>
     </div>
 </div>
 
 <div id="tela-pin" class="tela-autenticacao" style="display:none;">
     <div class="card-auth">
         <h2>PIN Rápido</h2>
-        <input type="email" id="pin-email" class="input-auth" placeholder="Seu E-mail">
+        <input type="email"  id="pin-email" class="input-auth" placeholder="E-mail">
         <input type="number" id="login-pin" class="input-auth" placeholder="PIN de 4 dígitos" inputmode="numeric">
         <button class="btn-auth" onclick="executarLoginPorPIN()">VERIFICAR E ENTRAR</button>
-        <button class="btn-auth-secundario" onclick="alternarFluxoAuth('login')">Voltar para Senha</button>
+        <button class="btn-auth-sec" onclick="alternarFluxoAuth('login')">Voltar</button>
     </div>
 </div>
 
 <div id="tela-cadastro" class="tela-autenticacao" style="display:none;">
     <div class="card-auth">
         <h2>Novo Cadastro</h2>
-        <input type="text" id="cad-nome" class="input-auth" placeholder="Nome Completo">
-        <input type="email" id="cad-email" class="input-auth" placeholder="E-mail">
-        <input type="password" id="cad-senha" class="input-auth" placeholder="Senha">
-        <input type="number" id="cad-pin" class="input-auth" placeholder="PIN de 4 dígitos" inputmode="numeric">
+        <input type="text"     id="cad-nome"     class="input-auth" placeholder="Nome Completo *">
+        <input type="email"    id="cad-email"    class="input-auth" placeholder="E-mail *">
+        <input type="tel"      id="cad-telefone" class="input-auth" placeholder="WhatsApp (opcional)">
+        <input type="password" id="cad-senha"    class="input-auth" placeholder="Senha *">
+        <input type="number"   id="cad-pin"      class="input-auth" placeholder="PIN de 4 dígitos *" inputmode="numeric">
         <button class="btn-auth" onclick="executarCadastroMotorista()">CRIAR CONTA</button>
-        <button class="btn-auth-secundario" onclick="alternarFluxoAuth('login')">Já tenho conta</button>
+        <button class="btn-auth-sec" onclick="alternarFluxoAuth('login')">Já tenho conta</button>
     </div>
 </div>
 
@@ -121,34 +155,71 @@
         <div class="dashboard-container">
             <div class="semaforo">
                 <div id="luz-vermelha" class="luz luz-vermelha"></div>
-                <div id="luz-amarela" class="luz luz-amarela"></div>
-                <div id="luz-verde" class="luz luz-verde ativa"></div>
+                <div id="luz-amarela"  class="luz luz-amarela"></div>
+                <div id="luz-verde"    class="luz luz-verde ativa"></div>
             </div>
             <div style="text-align:center;" onclick="liberarAudioNavegador()">
                 <span id="vel-atual">0</span><br><span class="unidade-medida">KM/H</span>
             </div>
             <div class="bloco-limites">
-                <div class="limite-linha"><span>Máximo:</span><span id="vel-maxima" class="limite-valor">60</span></div>
-                <div class="limite-linha"><span>Mínimo:</span><span id="vel-minima" class="limite-valor">30</span></div>
-                <div id="distancia-radar" style="font-size:11px;color:#ffea00;margin-top:4px;font-weight:bold;text-align:center;"></div>
+                <div class="limite-linha"><span>Radar:</span><span id="vel-maxima" class="limite-valor">--</span></div>
+                <div class="limite-linha"><span>Via:</span><span id="limite-via-display" class="limite-valor">--</span></div>
+                <div id="distancia-radar" style="font-size:11px;color:#ffea00;margin-top:4px;font-weight:bold;"></div>
             </div>
         </div>
     </div>
 
     <div id="conteudo-central">
         <div id="mapa"></div>
+
+        <!-- BARRA DE BUSCA -->
+        <div id="barra-busca">
+            <input type="text" id="input-busca" placeholder="🔎 Buscar endereço...">
+            <button id="btn-buscar" onclick="buscarEndereco()">🔎</button>
+        </div>
+        <div id="resultados-busca"></div>
+
+        <!-- BOTÕES LATERAIS -->
+        <div id="btns-mapa-lateral">
+            <div class="btn-mapa-lat btn-limite-via-lat" onclick="abrirModal('modal-limite-via')">
+                🚧<br>LIMITE<br><span id="limite-via-btn">--</span>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL FIXAR RADAR -->
-    <div id="modal-fixar-radar">
-        <h4>📍 FIXAR RADAR — ESCOLHA O LIMITE</h4>
-        <div class="container-botoes-vel">
-            <button class="btn-vel-opcao" onclick="publicarRadar(40)">40<br><small>km/h</small></button>
-            <button class="btn-vel-opcao" onclick="publicarRadar(50)">50<br><small>km/h</small></button>
-            <button class="btn-vel-opcao" onclick="publicarRadar(60)">60<br><small>km/h</small></button>
-            <button class="btn-vel-opcao" onclick="publicarRadar(80)">80<br><small>km/h</small></button>
+    <div id="modal-fixar-radar" class="modal-base">
+        <h4>📍 FIXAR RADAR — LIMITE</h4>
+        <div class="grid-vel">
+            <button class="btn-vel" onclick="publicarRadar(40)">40<br><small>km/h</small></button>
+            <button class="btn-vel" onclick="publicarRadar(50)">50<br><small>km/h</small></button>
+            <button class="btn-vel" onclick="publicarRadar(60)">60<br><small>km/h</small></button>
+            <button class="btn-vel" onclick="publicarRadar(80)">80<br><small>km/h</small></button>
         </div>
-        <button class="btn-cancelar-radar" onclick="fecharModalRadar()">❌ CANCELAR</button>
+        <button class="btn-cancelar-modal" onclick="fecharModal('modal-fixar-radar')">❌ CANCELAR</button>
+    </div>
+
+    <!-- MODAL LIMITE DE VIA -->
+    <div id="modal-limite-via" class="modal-base">
+        <h4>🚧 LIMITE DESTA VIA</h4>
+        <p style="font-size:12px;color:#aaa;margin:0 0 12px;">Informe o limite desta rua/avenida para todos os usuários</p>
+        <div class="grid-vel" style="grid-template-columns:1fr 1fr 1fr;">
+            <button class="btn-vel" onclick="publicarLimiteVia(30)">30</button>
+            <button class="btn-vel" onclick="publicarLimiteVia(40)">40</button>
+            <button class="btn-vel" onclick="publicarLimiteVia(50)">50</button>
+            <button class="btn-vel" onclick="publicarLimiteVia(60)">60</button>
+            <button class="btn-vel" onclick="publicarLimiteVia(80)">80</button>
+            <button class="btn-vel" onclick="publicarLimiteVia(100)">100</button>
+        </div>
+        <button class="btn-cancelar-modal" onclick="fecharModal('modal-limite-via')">❌ CANCELAR</button>
+    </div>
+
+    <!-- POPUP EXCESSO -->
+    <div id="popup-velocidade">
+        <h1>⚠️ EXCESSO!</h1>
+        <p id="popup-msg"></p>
+        <p id="popup-detalhe"></p>
+        <button id="btn-fechar-popup" onclick="fecharPopupVelocidade()">OK, ENTENDIDO</button>
     </div>
 
     <!-- TELA MEUS RADARES -->
@@ -159,7 +230,7 @@
         </div>
         <div class="corpo-overlay-scroll">
             <table class="tabela-overlay">
-                <thead><tr><th>Localização</th><th>Limite</th><th>Data</th><th>Ação</th></tr></thead>
+                <thead><tr><th>Localização</th><th>Limite</th><th>Data</th><th>Del</th></tr></thead>
                 <tbody id="corpo-meus-radares"></tbody>
             </table>
         </div>
@@ -168,79 +239,104 @@
     <!-- TELA HISTÓRICO -->
     <div id="tela-historico" class="tela-overlay">
         <div class="topo-overlay">
-            <h3>📋 Histórico de Passagens</h3>
+            <h3>📋 Histórico</h3>
             <div style="display:flex;gap:8px;">
-                <button onclick="limparHistorico()" style="background-color:#c62828;color:white;border:none;padding:8px 12px;font-weight:bold;border-radius:6px;cursor:pointer;font-size:12px;">🗑️ LIMPAR</button>
+                <button onclick="limparHistorico()" style="background:#c62828;color:white;border:none;padding:8px 10px;font-weight:bold;border-radius:6px;cursor:pointer;font-size:11px;">🗑️ LIMPAR</button>
                 <button class="btn-fechar-overlay" onclick="fecharTela('tela-historico')">❌ VOLTAR</button>
             </div>
         </div>
         <div class="corpo-overlay-scroll">
             <table class="tabela-overlay">
-                <thead><tr><th>Local</th><th>Vel.</th><th>Limite</th><th>Status</th><th>Data/Hora</th></tr></thead>
+                <thead><tr><th>Local</th><th>Vel.</th><th>Limite</th><th>St.</th><th>Data/Hora</th></tr></thead>
                 <tbody id="corpo-historico"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- BOTÕES DE AÇÃO -->
-    <div id="painel-botoes">
-        <button class="btn-acao btn-fixar"  onclick="abrirModalRadar()">📍<br>FIXAR<br>RADAR</button>
-        <button class="btn-acao btn-meus"   onclick="abrirTela('tela-meus-radares')">🗂️<br>MEUS<br>RAD.</button>
-        <button class="btn-acao btn-hist"   onclick="abrirTela('tela-historico')">📋<br>HISTÓRICO</button>
-        <button class="btn-acao btn-pip"    onclick="alternarModoFlutuante()">🔲<br>FLUTUANTE</button>
+    <!-- TELA ADMIN -->
+    <div id="tela-admin" class="tela-overlay">
+        <div class="topo-overlay">
+            <h3>👑 Admin</h3>
+            <div style="display:flex;gap:6px;">
+                <button onclick="mostrarAbaAdmin('usuarios')" style="background:#0079f2;color:white;border:none;padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer;">👥 Usuários</button>
+                <button onclick="mostrarAbaAdmin('limites')"  style="background:#ffea00;color:#000;border:none;padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer;">🚧 Limites</button>
+                <button class="btn-fechar-overlay" onclick="fecharTela('tela-admin')">❌</button>
+            </div>
+        </div>
+        <div id="resumo-admin" style="padding:10px 12px;background:#1a1a2e;font-size:12px;color:#aaa;"></div>
+        <div class="corpo-overlay-scroll">
+            <div id="aba-usuarios">
+                <table class="tabela-overlay">
+                    <thead><tr><th>Nome</th><th>E-mail</th><th>Tel.</th><th>Cadastro</th></tr></thead>
+                    <tbody id="corpo-admin-usuarios"></tbody>
+                </table>
+            </div>
+            <div id="aba-limites" style="display:none;">
+                <table class="tabela-overlay">
+                    <thead><tr><th>Descrição</th><th>Vel.</th><th>Por</th><th>Status</th><th>Ação</th></tr></thead>
+                    <tbody id="corpo-admin-limites"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <div id="info-gps">Precisão GPS: -- | Banco Nuvem Ativo</div>
+    <!-- PAINEL DE BOTÕES -->
+    <div id="painel-botoes">
+        <button class="btn-acao btn-fixar" onclick="abrirModal('modal-fixar-radar')">📍<br>FIXAR<br>RADAR</button>
+        <button class="btn-acao btn-meus"  onclick="abrirTela('tela-meus-radares')">🗂️<br>MEUS<br>RAD.</button>
+        <button class="btn-acao btn-hist"  onclick="abrirTela('tela-historico')">📋<br>HISTÓRICO</button>
+        <button class="btn-acao btn-pip"   onclick="alternarModoFlutuante()">🔲<br>FLUTUANTE</button>
+    </div>
+
+    <div id="info-gps">GPS: aguardando... | <span id="info-usuario"></span></div>
 </div>
 
 <canvas id="canvas-pip" width="500" height="500"></canvas>
-<video id="video-pip" autoplay muted playsinline style="display:none;"></video>
+<video id="video-pip" autoplay muted playsinline style="display:none;position:fixed;width:1px;height:1px;opacity:0.01;"></video>
 
 <script>
     const API_URL = window.location.origin;
     let tokenLocal = localStorage.getItem('asb_jwt_token');
-    let emailUsuarioLogado = localStorage.getItem('asb_user_email') || '';
-    let meuIdUsuario = null;
+    let usuarioAtual = null;
 
     let listaRadares = [];
+    let listaLimitesVia = [];
     let historicoPassagens = JSON.parse(localStorage.getItem('asb_historico') || '[]');
 
-    const mapa = L.map('mapa').setView([-16.6869, -49.2648], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapa);
+    const mapa = L.map('mapa', { zoomControl:false }).setView([-16.6869, -49.2648], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(mapa);
+    L.control.zoom({ position:'bottomright' }).addTo(mapa);
 
     let marcadorMotorista = null;
     let minhaLatAtual = 0, minhaLonAtual = 0;
-    let velocidadeGlobal = 0, limiteGlobal = 60;
-    let distGlobal = '', statusTextoGlobal = 'VIA MONITORADA';
-    let audioCtx = null;
+    let velocidadeGlobal = 0, limiteGlobal = 0;
+    let statusTextoGlobal = 'VIA MONITORADA';
+    let audioCtx = null, bipIntervalId = null;
+    let radaresDentroDoRaio = new Set();
+    let limitesDentroDoRaio = new Set();
+    let popupAtivo = false;
+    let ultimoExcesso = 0;
+    let marcadorDestino = null;
 
-    // Controle do bipe oscilatório
-    let bipIntervalId = null;
-    let dentroDoRaio = false;
+    const iconeMotorista = L.divIcon({ html:'🚗', className:'', iconSize:[30,30], iconAnchor:[15,15] });
 
     // =====================================================================
-    // AUTENTICAÇÃO
+    // AUTH
     // =====================================================================
     function alternarFluxoAuth(tela) {
-        document.getElementById('tela-login').style.display    = tela === 'login'    ? 'flex' : 'none';
-        document.getElementById('tela-pin').style.display      = tela === 'pin'      ? 'flex' : 'none';
-        document.getElementById('tela-cadastro').style.display = tela === 'cadastro' ? 'flex' : 'none';
-        if (tela === 'pin') document.getElementById('pin-email').value = document.getElementById('login-email').value;
+        ['login','pin','cadastro'].forEach(t =>
+            document.getElementById(`tela-${t}`).style.display = t===tela ? 'flex' : 'none'
+        );
+        if (tela==='pin') document.getElementById('pin-email').value = document.getElementById('login-email').value || '';
     }
 
     async function checarAutenticacaoExistente() {
-        if (tokenLocal) {
-            try {
-                const resposta = await fetch(`${API_URL}/api/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${tokenLocal}` }
-                });
-                if (resposta.ok) {
-                    const dados = await resposta.json();
-                    meuIdUsuario = dados.id;
-                    entrarNoAplicativo();
-                } else { limparTokens(); }
-            } catch (e) { entrarNoAplicativo(); }
-        }
+        if (!tokenLocal) return;
+        try {
+            const r = await fetch(`${API_URL}/api/auth/me`, { headers:{'Authorization':`Bearer ${tokenLocal}`} });
+            if (r.ok) { usuarioAtual = await r.json(); entrarNoAplicativo(); }
+            else limparTokens();
+        } catch { if (tokenLocal) entrarNoAplicativo(); }
     }
 
     function limparTokens() {
@@ -250,154 +346,207 @@
     }
 
     function entrarNoAplicativo() {
-        document.getElementById('tela-login').style.display    = 'none';
-        document.getElementById('tela-pin').style.display      = 'none';
-        document.getElementById('tela-cadastro').style.display = 'none';
+        ['tela-login','tela-pin','tela-cadastro'].forEach(t => document.getElementById(t).style.display='none');
         document.getElementById('app-container').style.display = 'flex';
         mapa.invalidateSize();
-        sincronizarBancoDeRadares();
+        if (usuarioAtual) {
+            document.getElementById('info-usuario').innerText = usuarioAtual.nome + (usuarioAtual.is_admin ? ' 👑' : '');
+            if (usuarioAtual.is_admin) adicionarBotaoAdmin();
+        }
+        sincronizarTudo();
         inicializarRastreamentoGPS();
         renderizarHistorico();
+        prepararPip();
+    }
+
+    function adicionarBotaoAdmin() {
+        if (document.getElementById('btn-admin')) return;
+        const btn = document.createElement('button');
+        btn.id = 'btn-admin';
+        btn.className = 'btn-acao';
+        btn.style.background = '#b71c1c';
+        btn.innerHTML = '👑<br>ADMIN';
+        btn.onclick = () => abrirTela('tela-admin');
+        document.getElementById('painel-botoes').appendChild(btn);
     }
 
     async function executarLoginTradicional() {
         const email = document.getElementById('login-email').value;
         const senha = document.getElementById('login-senha').value;
         try {
-            const resposta = await fetch(`${API_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, senha })
+            const r = await fetch(`${API_URL}/api/auth/login`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({email, senha})
             });
-            const dados = await resposta.json();
-            if (resposta.ok) {
-                localStorage.setItem('asb_jwt_token', dados.token);
-                localStorage.setItem('asb_user_email', email);
-                tokenLocal = dados.token;
-                meuIdUsuario = dados.user.id;
-                entrarNoAplicativo();
-            } else { alert(dados.error); }
-        } catch (e) { alert('Erro de conexão com o servidor.'); }
+            const d = await r.json();
+            if (r.ok) { localStorage.setItem('asb_jwt_token', d.token); tokenLocal=d.token; usuarioAtual=d.user; entrarNoAplicativo(); }
+            else alert(d.error);
+        } catch { alert('Erro de conexão.'); }
     }
 
     async function executarLoginPorPIN() {
         const email = document.getElementById('pin-email').value;
         const pin   = document.getElementById('login-pin').value;
         try {
-            const resposta = await fetch(`${API_URL}/api/auth/pin`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, pin })
+            const r = await fetch(`${API_URL}/api/auth/pin`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({email, pin})
             });
-            const dados = await resposta.json();
-            if (resposta.ok) {
-                localStorage.setItem('asb_jwt_token', dados.token);
-                localStorage.setItem('asb_user_email', email);
-                tokenLocal = dados.token;
-                meuIdUsuario = dados.user.id;
-                entrarNoAplicativo();
-            } else { alert(dados.error); }
-        } catch (e) { alert('Erro ao validar PIN.'); }
+            const d = await r.json();
+            if (r.ok) { localStorage.setItem('asb_jwt_token', d.token); tokenLocal=d.token; usuarioAtual=d.user; entrarNoAplicativo(); }
+            else alert(d.error);
+        } catch { alert('Erro ao validar PIN.'); }
     }
 
     async function executarCadastroMotorista() {
-        const nome  = document.getElementById('cad-nome').value;
-        const email = document.getElementById('cad-email').value;
-        const senha = document.getElementById('cad-senha').value;
-        const pin   = document.getElementById('cad-pin').value;
+        const nome     = document.getElementById('cad-nome').value;
+        const email    = document.getElementById('cad-email').value;
+        const telefone = document.getElementById('cad-telefone').value;
+        const senha    = document.getElementById('cad-senha').value;
+        const pin      = document.getElementById('cad-pin').value;
         try {
-            const resposta = await fetch(`${API_URL}/api/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome, email, senha, pin })
+            const r = await fetch(`${API_URL}/api/auth/register`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({nome, email, telefone, senha, pin})
             });
-            const dados = await resposta.json();
-            if (resposta.ok) {
-                localStorage.setItem('asb_jwt_token', dados.token);
-                localStorage.setItem('asb_user_email', email);
-                tokenLocal = dados.token;
-                meuIdUsuario = dados.user.id;
-                entrarNoAplicativo();
-            } else { alert(dados.error); }
-        } catch (e) { alert('Erro no cadastro.'); }
+            const d = await r.json();
+            if (r.ok) { localStorage.setItem('asb_jwt_token', d.token); tokenLocal=d.token; usuarioAtual=d.user; entrarNoAplicativo(); }
+            else alert(d.error);
+        } catch { alert('Erro no cadastro.'); }
     }
 
     // =====================================================================
-    // RADARES — SINCRONISMO E MAPA
+    // SINCRONISMO
     // =====================================================================
-    async function sincronizarBancoDeRadares() {
+    async function sincronizarTudo() {
+        await Promise.all([sincronizarRadares(), sincronizarLimitesVia()]);
+        setTimeout(sincronizarTudo, 30000);
+    }
+
+    async function sincronizarRadares() {
         try {
-            const resposta = await fetch(`${API_URL}/api/radares`);
-            if (resposta.ok) {
-                listaRadares = await resposta.json();
-                plotarRadaresNoMapa();
-                renderizarMeusRadares();
-            }
-        } catch (e) { console.log('Cache local ativo.'); }
-        setTimeout(sincronizarBancoDeRadares, 30000); // Atualiza a cada 30s
+            const r = await fetch(`${API_URL}/api/radares`);
+            if (r.ok) { listaRadares = await r.json(); plotarRadaresNoMapa(); renderizarMeusRadares(); }
+        } catch {}
     }
 
+    async function sincronizarLimitesVia() {
+        try {
+            const r = await fetch(`${API_URL}/api/limites-via`);
+            if (r.ok) { listaLimitesVia = await r.json(); plotarLimitesNoMapa(); }
+        } catch {}
+    }
+
+    // =====================================================================
+    // MAPA — RADARES
+    // =====================================================================
     function plotarRadaresNoMapa() {
-        mapa.eachLayer(layer => {
-            if ((layer instanceof L.Circle || layer instanceof L.CircleMarker) && layer !== marcadorMotorista) {
-                mapa.removeLayer(layer);
-            }
-        });
+        mapa.eachLayer(l => { if (l._isRadar) mapa.removeLayer(l); });
         listaRadares.forEach(radar => {
-            const souDono = radar.user_id === meuIdUsuario;
+            const souDono = usuarioAtual && radar.user_id === usuarioAtual.id;
             const cor = souDono ? '#0079f2' : '#ff1744';
-            L.circle([radar.lat, radar.lon], { color: cor, fillColor: cor, fillOpacity: 0.15, radius: 100 }).addTo(mapa);
-            L.circleMarker([radar.lat, radar.lon], { radius: 7, color: '#fff', fillColor: cor, fillOpacity: 1 })
-                .addTo(mapa)
-                .bindPopup(`<b>${radar.local}</b><br>Limite: ${radar.velocidade} km/h`);
+            const c = L.circle([radar.lat, radar.lon], { color:cor, fillColor:cor, fillOpacity:0.15, radius:100 }).addTo(mapa);
+            c._isRadar = true;
+            const p = L.circleMarker([radar.lat, radar.lon], { radius:7, color:'#fff', fillColor:cor, fillOpacity:1 })
+                .addTo(mapa).bindPopup(`<b>${radar.local}</b><br>Limite: <b>${radar.velocidade} km/h</b><br>Por: ${radar.nome_usuario||'usuário'}`);
+            p._isRadar = true;
         });
     }
 
-    function abrirModalRadar() {
-        if (minhaLatAtual === 0) return alert('Aguardando sinal do GPS. Tente em alguns segundos.');
-        document.getElementById('modal-fixar-radar').style.display = 'block';
+    // =====================================================================
+    // MAPA — LIMITES DE VIA
+    // =====================================================================
+    function plotarLimitesNoMapa() {
+        mapa.eachLayer(l => { if (l._isLimite) mapa.removeLayer(l); });
+        listaLimitesVia.forEach(lv => {
+            const cor = lv.validado ? '#ffea00' : '#888';
+            const icone = L.divIcon({
+                html: `<div style="background:${cor};color:#000;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px;border:2px solid #fff;">${lv.velocidade}</div>`,
+                className: '', iconSize:[28,28], iconAnchor:[14,14]
+            });
+            const m = L.marker([lv.lat, lv.lon], { icon:icone }).addTo(mapa)
+                .bindPopup(`🚧 <b>Limite: ${lv.velocidade} km/h</b><br>${lv.descricao}<br>Por: ${lv.nome_usuario||'usuário'}<br>${lv.validado ? '✅ Validado' : '⏳ Aguardando validação'}`);
+            m._isLimite = true;
+        });
     }
-    function fecharModalRadar() { document.getElementById('modal-fixar-radar').style.display = 'none'; }
+
+    // =====================================================================
+    // FIXAR RADAR
+    // =====================================================================
+    function abrirModal(id) {
+        if (id==='modal-fixar-radar' && minhaLatAtual===0) return alert('Aguardando GPS.');
+        if (id==='modal-limite-via' && minhaLatAtual===0) return alert('Aguardando GPS.');
+        document.getElementById(id).style.display = 'block';
+    }
+    function fecharModal(id) { document.getElementById(id).style.display = 'none'; }
 
     async function publicarRadar(velocidade) {
         const agora = new Date();
-        const novoRadar = {
-            local: `Radar ${velocidade}km/h — ${agora.toLocaleTimeString('pt-BR')}`,
-            lat: minhaLatAtual,
-            lon: minhaLonAtual,
-            velocidade: velocidade
-        };
         try {
-            const resposta = await fetch(`${API_URL}/api/radares`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${tokenLocal}`
-                },
-                body: JSON.stringify(novoRadar)
+            const r = await fetch(`${API_URL}/api/radares`, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenLocal}`},
+                body: JSON.stringify({
+                    local: `Radar ${velocidade}km/h — ${agora.toLocaleTimeString('pt-BR')}`,
+                    lat: minhaLatAtual, lon: minhaLonAtual, velocidade
+                })
             });
-            if (resposta.ok) {
-                fecharModalRadar();
-                await sincronizarBancoDeRadares();
-                alert(`✅ Radar de ${velocidade} km/h fixado!`);
-            } else {
-                const err = await resposta.json();
-                alert('Erro: ' + err.error);
-            }
-        } catch (e) { alert('Erro ao publicar radar.'); }
+            if (r.ok) { fecharModal('modal-fixar-radar'); await sincronizarRadares(); }
+            else { const e = await r.json(); alert(e.error); }
+        } catch { alert('Erro ao publicar radar.'); }
     }
 
     async function removerRadar(id) {
-        if (!confirm('Deseja remover este radar?')) return;
+        if (!confirm('Remover este radar?')) return;
         try {
-            const resposta = await fetch(`${API_URL}/api/radares/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${tokenLocal}` }
+            const r = await fetch(`${API_URL}/api/radares/${id}`, {
+                method:'DELETE', headers:{'Authorization':`Bearer ${tokenLocal}`}
             });
-            if (resposta.ok) {
-                await sincronizarBancoDeRadares();
-            }
-        } catch (e) { alert('Erro ao remover radar.'); }
+            if (r.ok) await sincronizarRadares();
+        } catch { alert('Erro ao remover.'); }
+    }
+
+    // =====================================================================
+    // LIMITES DE VIA — publicar
+    // =====================================================================
+    async function publicarLimiteVia(velocidade) {
+        const agora = new Date();
+        try {
+            const r = await fetch(`${API_URL}/api/limites-via`, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenLocal}`},
+                body: JSON.stringify({
+                    descricao: `Limite ${velocidade}km/h — ${agora.toLocaleTimeString('pt-BR')}`,
+                    lat: minhaLatAtual, lon: minhaLonAtual, velocidade
+                })
+            });
+            if (r.ok) {
+                fecharModal('modal-limite-via');
+                document.getElementById('limite-via-btn').innerText = `${velocidade}`;
+                document.getElementById('limite-via-display').innerText = velocidade;
+                await sincronizarLimitesVia();
+                alert(`✅ Limite de ${velocidade} km/h registrado!\nAguarda validação do admin.`);
+            } else { const e = await r.json(); alert(e.error); }
+        } catch { alert('Erro ao salvar limite.'); }
+    }
+
+    async function removerLimite(id) {
+        if (!confirm('Remover este limite?')) return;
+        try {
+            const r = await fetch(`${API_URL}/api/limites-via/${id}`, {
+                method:'DELETE', headers:{'Authorization':`Bearer ${tokenLocal}`}
+            });
+            if (r.ok) await sincronizarLimitesVia();
+        } catch { alert('Erro ao remover.'); }
+    }
+
+    async function validarLimite(id) {
+        try {
+            const r = await fetch(`${API_URL}/api/limites-via/${id}/validar`, {
+                method:'PATCH', headers:{'Authorization':`Bearer ${tokenLocal}`}
+            });
+            if (r.ok) { await sincronizarLimitesVia(); carregarAdminLimites(); }
+        } catch { alert('Erro ao validar.'); }
     }
 
     // =====================================================================
@@ -406,39 +555,31 @@
     function renderizarMeusRadares() {
         const tbody = document.getElementById('corpo-meus-radares');
         tbody.innerHTML = '';
-        const meus = listaRadares.filter(r => r.user_id === meuIdUsuario);
-        if (meus.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px;">Nenhum radar fixado ainda.</td></tr>';
+        const meus = listaRadares.filter(r => usuarioAtual && r.user_id === usuarioAtual.id);
+        if (!meus.length) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:20px;">Nenhum radar fixado.</td></tr>';
             return;
         }
-        meus.forEach(radar => {
-            const data = new Date(radar.criado_em).toLocaleDateString('pt-BR');
+        meus.forEach(r => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${radar.local}</td>
-                <td>${radar.velocidade} km/h</td>
-                <td>${data}</td>
-                <td><button class="btn-deletar" onclick="removerRadar(${radar.id})">🗑️</button></td>
-            `;
+            tr.innerHTML = `<td style="font-size:11px;">${r.local}</td><td>${r.velocidade}</td>
+                <td>${new Date(r.criado_em).toLocaleDateString('pt-BR')}</td>
+                <td><button class="btn-deletar" onclick="removerRadar(${r.id})">🗑️</button></td>`;
             tbody.appendChild(tr);
         });
     }
 
     // =====================================================================
-    // HISTÓRICO DE PASSAGENS (local, automático)
+    // HISTÓRICO
     // =====================================================================
-    function registrarPassagem(radar, velocidadePassagem) {
-        const agora = new Date();
-        const entrada = {
-            local: radar.local,
-            velocidade: velocidadePassagem,
+    function registrarPassagem(radar, vel) {
+        historicoPassagens.unshift({
+            local: radar.local || radar.descricao, velocidade: vel,
             limite: radar.velocidade,
-            dataHora: agora.toLocaleString('pt-BR'),
-            status: velocidadePassagem > radar.velocidade ? 'vermelho' :
-                    velocidadePassagem >= radar.velocidade * 0.9 ? 'amarelo' : 'verde'
-        };
-        historicoPassagens.unshift(entrada); // Mais recente primeiro
-        if (historicoPassagens.length > 100) historicoPassagens.pop(); // Máximo 100
+            dataHora: new Date().toLocaleString('pt-BR'),
+            status: vel > radar.velocidade ? 'vermelho' : vel >= radar.velocidade*0.9 ? 'amarelo' : 'verde'
+        });
+        if (historicoPassagens.length > 200) historicoPassagens.pop();
         localStorage.setItem('asb_historico', JSON.stringify(historicoPassagens));
         renderizarHistorico();
     }
@@ -446,89 +587,186 @@
     function renderizarHistorico() {
         const tbody = document.getElementById('corpo-historico');
         tbody.innerHTML = '';
-        if (historicoPassagens.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Nenhuma passagem registrada ainda.</td></tr>';
+        if (!historicoPassagens.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Nenhuma passagem registrada.</td></tr>';
             return;
         }
         historicoPassagens.forEach(p => {
-            const corClass = `hist-${p.status}`;
-            const emoji = p.status === 'verde' ? '🟢' : p.status === 'amarelo' ? '🟡' : '🔴';
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="font-size:11px;">${p.local}</td>
-                <td class="${corClass}">${p.velocidade}</td>
+            tr.innerHTML = `<td style="font-size:11px;">${p.local}</td>
+                <td class="hist-${p.status}">${p.velocidade}</td>
                 <td>${p.limite}</td>
-                <td>${emoji}</td>
-                <td style="font-size:10px;">${p.dataHora}</td>
-            `;
+                <td>${p.status==='verde'?'🟢':p.status==='amarelo'?'🟡':'🔴'}</td>
+                <td style="font-size:10px;">${p.dataHora}</td>`;
             tbody.appendChild(tr);
         });
     }
 
     function limparHistorico() {
-        if (!confirm('Deseja apagar todo o histórico de passagens?')) return;
+        if (!confirm('Apagar todo o histórico?')) return;
         historicoPassagens = [];
         localStorage.removeItem('asb_historico');
         renderizarHistorico();
     }
 
     // =====================================================================
-    // TELAS OVERLAY
+    // ADMIN
+    // =====================================================================
+    function mostrarAbaAdmin(aba) {
+        document.getElementById('aba-usuarios').style.display = aba==='usuarios' ? 'block' : 'none';
+        document.getElementById('aba-limites').style.display  = aba==='limites'  ? 'block' : 'none';
+        if (aba==='limites') carregarAdminLimites();
+    }
+
+    async function carregarUsuariosAdmin() {
+        try {
+            const r = await fetch(`${API_URL}/api/admin/usuarios`, { headers:{'Authorization':`Bearer ${tokenLocal}`} });
+            if (!r.ok) return;
+            const usuarios = await r.json();
+            document.getElementById('resumo-admin').innerHTML =
+                `👥 <b style="color:#ffea00;">${usuarios.length} usuários</b> | 📍 ${listaRadares.length} radares | 🚧 ${listaLimitesVia.length} limites de via`;
+            const tbody = document.getElementById('corpo-admin-usuarios');
+            tbody.innerHTML = '';
+            usuarios.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${u.nome}${u.is_admin?' <span class="badge-admin">ADMIN</span>':''}</td>
+                    <td style="font-size:10px;">${u.email}</td>
+                    <td>${u.telefone||'--'}</td>
+                    <td style="font-size:10px;">${new Date(u.criado_em).toLocaleDateString('pt-BR')}</td>`;
+                tbody.appendChild(tr);
+            });
+        } catch {}
+    }
+
+    function carregarAdminLimites() {
+        const tbody = document.getElementById('corpo-admin-limites');
+        tbody.innerHTML = '';
+        if (!listaLimitesVia.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Nenhum limite cadastrado.</td></tr>';
+            return;
+        }
+        listaLimitesVia.forEach(lv => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td style="font-size:11px;">${lv.descricao}</td>
+                <td>${lv.velocidade}</td>
+                <td style="font-size:10px;">${lv.nome_usuario||'--'}</td>
+                <td>${lv.validado ? '<span class="badge-validado">✅</span>' : '<span class="badge-pendente">⏳</span>'}</td>
+                <td style="display:flex;gap:4px;">
+                    ${!lv.validado ? `<button class="btn-deletar" style="background:#2e7d32;" onclick="validarLimite(${lv.id})">✅</button>` : ''}
+                    <button class="btn-deletar" onclick="removerLimiteAdmin(${lv.id})">🗑️</button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function removerLimiteAdmin(id) {
+        if (!confirm('Remover este limite?')) return;
+        try {
+            const r = await fetch(`${API_URL}/api/admin/limites-via/${id}`, {
+                method:'DELETE', headers:{'Authorization':`Bearer ${tokenLocal}`}
+            });
+            if (r.ok) { await sincronizarLimitesVia(); carregarAdminLimites(); }
+        } catch { alert('Erro ao remover.'); }
+    }
+
+    // =====================================================================
+    // OVERLAYS
     // =====================================================================
     function abrirTela(id) {
         document.getElementById(id).style.display = 'flex';
-        if (id === 'tela-meus-radares') renderizarMeusRadares();
-        if (id === 'tela-historico') renderizarHistorico();
+        if (id==='tela-meus-radares') renderizarMeusRadares();
+        if (id==='tela-historico')    renderizarHistorico();
+        if (id==='tela-admin')        { carregarUsuariosAdmin(); mostrarAbaAdmin('usuarios'); }
     }
     function fecharTela(id) { document.getElementById(id).style.display = 'none'; }
 
     // =====================================================================
-    // AUDIO
+    // POPUP EXCESSO
+    // =====================================================================
+    function exibirPopupVelocidade(vel, limite) {
+        if (popupAtivo) return;
+        const agora = Date.now();
+        if (agora - ultimoExcesso < 10000) return;
+        ultimoExcesso = agora;
+        popupAtivo = true;
+        document.getElementById('popup-msg').innerText     = `Sua velocidade: ${vel} km/h`;
+        document.getElementById('popup-detalhe').innerText = `Limite: ${limite} km/h`;
+        document.getElementById('popup-velocidade').style.display = 'flex';
+        emitirBipUnico(900, 0.3);
+        setTimeout(()=>emitirBipUnico(900,0.3), 350);
+        setTimeout(()=>emitirBipUnico(900,0.3), 700);
+        setTimeout(fecharPopupVelocidade, 5000);
+    }
+    function fecharPopupVelocidade() {
+        document.getElementById('popup-velocidade').style.display = 'none';
+        popupAtivo = false;
+    }
+
+    // =====================================================================
+    // BUSCA
+    // =====================================================================
+    async function buscarEndereco() {
+        const texto = document.getElementById('input-busca').value;
+        if (!texto) return;
+        try {
+            const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(texto+', Goiânia, Brasil')}&format=json&limit=5`, { headers:{'Accept-Language':'pt-BR'} });
+            const res = await r.json();
+            const div = document.getElementById('resultados-busca');
+            div.innerHTML = ''; div.style.display = res.length ? 'block' : 'none';
+            res.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'item-busca';
+                el.innerText = item.display_name;
+                el.onclick = () => {
+                    const lat = parseFloat(item.lat), lon = parseFloat(item.lon);
+                    mapa.setView([lat, lon], 16);
+                    if (marcadorDestino) mapa.removeLayer(marcadorDestino);
+                    marcadorDestino = L.marker([lat, lon]).addTo(mapa).bindPopup(`📍 ${item.display_name}`).openPopup();
+                    div.style.display = 'none';
+                    document.getElementById('input-busca').value = item.display_name.split(',')[0];
+                };
+                div.appendChild(el);
+            });
+        } catch {}
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('input-busca').addEventListener('keypress', e => { if(e.key==='Enter') buscarEndereco(); });
+    });
+
+    // =====================================================================
+    // ÁUDIO
     // =====================================================================
     function liberarAudioNavegador() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        if (audioCtx.state==='suspended') audioCtx.resume();
     }
 
     function emitirBipUnico(freq, dur) {
         if (!audioCtx) return;
-        const osc  = audioCtx.createOscillator();
+        const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + dur);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
     }
 
     function iniciarBipeOscilatorio() {
-        if (bipIntervalId) return; // Já está bipando
-        bipIntervalId = setInterval(() => {
-            emitirBipUnico(1200, 0.12);
-        }, 800); // Bipe a cada 800ms
+        if (bipIntervalId) return;
+        bipIntervalId = setInterval(()=>emitirBipUnico(1200, 0.12), 800);
     }
-
     function pararBipeOscilatorio() {
-        if (bipIntervalId) {
-            clearInterval(bipIntervalId);
-            bipIntervalId = null;
-        }
+        if (bipIntervalId) { clearInterval(bipIntervalId); bipIntervalId=null; }
     }
 
     // =====================================================================
-    // GPS E NAVEGAÇÃO
+    // GPS
     // =====================================================================
-    let radaresDentroDoRaio = new Set(); // Controle para evitar registrar a mesma passagem várias vezes
-
-    function calcularDistancia(lat1, lon1, lat2, lon2) {
-        const R = 6371000;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    function calcDist(lat1, lon1, lat2, lon2) {
+        const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+        const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
     }
 
     function inicializarRastreamentoGPS() {
@@ -536,211 +774,152 @@
         navigator.geolocation.watchPosition(pos => {
             minhaLatAtual  = pos.coords.latitude;
             minhaLonAtual  = pos.coords.longitude;
-            velocidadeGlobal = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
+            velocidadeGlobal = pos.coords.speed ? Math.round(pos.coords.speed*3.6) : 0;
 
             document.getElementById('vel-atual').innerText = velocidadeGlobal;
-            document.getElementById('info-gps').innerText  = `Precisão GPS: ${parseInt(pos.coords.accuracy)}m | Nuvem Ativa`;
+            document.getElementById('info-gps').innerHTML =
+                `GPS: ${parseInt(pos.coords.accuracy)}m | <span id="info-usuario">${usuarioAtual ? usuarioAtual.nome+(usuarioAtual.is_admin?' 👑':'') : ''}</span>`;
 
             if (!marcadorMotorista) {
-                marcadorMotorista = L.circleMarker([minhaLatAtual, minhaLonAtual], {
-                    radius: 9, color: '#0079f2', fillColor: '#ffffff', fillOpacity: 1, weight: 3
-                }).addTo(mapa);
+                marcadorMotorista = L.marker([minhaLatAtual,minhaLonAtual],{icon:iconeMotorista}).addTo(mapa);
             } else {
-                marcadorMotorista.setLatLng([minhaLatAtual, minhaLonAtual]);
+                marcadorMotorista.setLatLng([minhaLatAtual,minhaLonAtual]);
             }
-            mapa.setView([minhaLatAtual, minhaLonAtual], 16);
+            mapa.setView([minhaLatAtual,minhaLonAtual],16);
 
-            // Verifica radares próximos (raio 100m)
-            let radarMaisProximo = null;
-            let menorDist = Infinity;
-            let algumDentroDoRaio = false;
+            let algumBipe = false;
+            let limiteAtivo = 0;
+            let textoStatus = 'SINALIZADOR DE VIA ACTIVO';
+            let distTexto = '';
 
+            // --- Verifica RADARES (100m) ---
             listaRadares.forEach(radar => {
-                const dist = calcularDistancia(minhaLatAtual, minhaLonAtual, radar.lat, radar.lon);
-
+                const dist = calcDist(minhaLatAtual,minhaLonAtual,radar.lat,radar.lon);
                 if (dist <= 100) {
-                    algumDentroDoRaio = true;
-
-                    // Registra passagem apenas uma vez por radar
+                    algumBipe = true;
                     if (!radaresDentroDoRaio.has(radar.id)) {
                         radaresDentroDoRaio.add(radar.id);
                         registrarPassagem(radar, velocidadeGlobal);
+                        if (velocidadeGlobal > radar.velocidade) exibirPopupVelocidade(velocidadeGlobal, radar.velocidade);
                     }
+                    if (radar.velocidade > limiteAtivo) limiteAtivo = radar.velocidade;
+                    textoStatus = `⚠️ RADAR: ${parseInt(dist)}m — ${radar.velocidade}km/h`;
+                    distTexto = `${parseInt(dist)}m`;
                 } else {
-                    // Saiu do raio — permite registrar novamente na próxima entrada
                     radaresDentroDoRaio.delete(radar.id);
-                }
-
-                if (dist < menorDist) {
-                    menorDist = dist;
-                    if (dist <= 100) radarMaisProximo = radar;
                 }
             });
 
-            // Controla bipe
-            if (algumDentroDoRaio) {
-                iniciarBipeOscilatorio();
-            } else {
-                pararBipeOscilatorio();
-            }
+            // --- Verifica LIMITES DE VIA (50m) ---
+            listaLimitesVia.forEach(lv => {
+                const dist = calcDist(minhaLatAtual,minhaLonAtual,lv.lat,lv.lon);
+                if (dist <= 50) {
+                    if (!limitesDentroDoRaio.has(lv.id)) {
+                        limitesDentroDoRaio.add(lv.id);
+                        // Atualiza limite da via no painel
+                        document.getElementById('limite-via-display').innerText = lv.velocidade;
+                        document.getElementById('limite-via-btn').innerText = lv.velocidade;
+                        if (velocidadeGlobal > lv.velocidade) exibirPopupVelocidade(velocidadeGlobal, lv.velocidade);
+                    }
+                    if (!limiteAtivo) limiteAtivo = lv.velocidade;
+                    if (textoStatus === 'SINALIZADOR DE VIA ACTIVO')
+                        textoStatus = `🚧 VIA ${lv.velocidade}km/h`;
+                } else {
+                    limitesDentroDoRaio.delete(lv.id);
+                }
+            });
 
-            // Atualiza painel
-            if (radarMaisProximo) {
-                limiteGlobal = radarMaisProximo.velocidade;
-                distGlobal   = `(${parseInt(menorDist)}m)`;
-                statusTextoGlobal = '⚠️ RADAR À FRENTE';
-                document.getElementById('texto-status').innerText = `⚠️ APROXIMAÇÃO: ${radarMaisProximo.local}`;
-                document.getElementById('distancia-radar').innerText = `${parseInt(menorDist)}m`;
-            } else if (menorDist <= 200) {
-                // Alerta visual entre 100-200m mas sem bipe
-                limiteGlobal = listaRadares.find(r => calcularDistancia(minhaLatAtual, minhaLonAtual, r.lat, r.lon) === menorDist)?.velocidade || 60;
-                document.getElementById('texto-status').innerText = `⚠️ RADAR A ${parseInt(menorDist)}m`;
-                document.getElementById('distancia-radar').innerText = `${parseInt(menorDist)}m`;
-            } else {
-                limiteGlobal = 60;
-                distGlobal   = '';
-                statusTextoGlobal = 'VIA MONITORADA';
-                document.getElementById('texto-status').innerText = 'SINALIZADOR DE VIA ACTIVO';
-                document.getElementById('distancia-radar').innerText = '';
-            }
+            limiteGlobal = limiteAtivo || 60;
+            statusTextoGlobal = textoStatus;
 
-            document.getElementById('vel-maxima').innerText = limiteGlobal;
-            document.getElementById('vel-minima').innerText = Math.round(limiteGlobal / 2);
-            atualizarOverlay();
+            algumBipe ? iniciarBipeOscilatorio() : pararBipeOscilatorio();
+
+            document.getElementById('texto-status').innerText = textoStatus;
+            document.getElementById('vel-maxima').innerText   = limiteAtivo || '--';
+            document.getElementById('distancia-radar').innerText = distTexto;
 
             // Semáforo
-            const lv = document.getElementById('luz-verde');
-            const la = document.getElementById('luz-amarela');
-            const lr = document.getElementById('luz-vermelha');
-            lv.classList.remove('ativa'); la.classList.remove('ativa'); lr.classList.remove('ativa');
-            if      (velocidadeGlobal > limiteGlobal)              lr.classList.add('ativa');
-            else if (velocidadeGlobal >= limiteGlobal * 0.9)       la.classList.add('ativa');
-            else                                                    lv.classList.add('ativa');
+            const lv2 = document.getElementById('luz-verde');
+            const la2 = document.getElementById('luz-amarela');
+            const lr2 = document.getElementById('luz-vermelha');
+            lv2.classList.remove('ativa'); la2.classList.remove('ativa'); lr2.classList.remove('ativa');
+            if      (velocidadeGlobal > limiteGlobal)           lr2.classList.add('ativa');
+            else if (velocidadeGlobal >= limiteGlobal*0.9)      la2.classList.add('ativa');
+            else                                                 lv2.classList.add('ativa');
 
-        }, null, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+            atualizarOverlay();
+
+        }, null, {enableHighAccuracy:true, maximumAge:0, timeout:5000});
     }
 
     // =====================================================================
-    // TELA FLUTUANTE (Picture-in-Picture)
+    // PIP
     // =====================================================================
     const canvas = document.getElementById('canvas-pip');
     const ctx    = canvas.getContext('2d');
     const video  = document.getElementById('video-pip');
-    let pipAtivo = false;
+    let pipAtivo=false, pipPreparado=false, overlayAtivo=false;
 
-    function desenharPainelFlutuante() {
-        ctx.fillStyle = '#1e1e1e'; ctx.fillRect(0, 0, 500, 500);
-        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 160px Arial'; ctx.textAlign = 'center';
-        ctx.fillText(velocidadeGlobal, 250, 240);
-        ctx.font = 'bold 28px Arial'; ctx.fillStyle = '#888'; ctx.fillText('KM/H', 250, 295);
-        ctx.fillStyle = '#ffea00'; ctx.font = 'bold 26px Arial';
-        ctx.fillText(statusTextoGlobal, 250, 370);
-        ctx.fillStyle = '#aaa'; ctx.font = '22px Arial';
-        ctx.fillText(`Limite: ${limiteGlobal} km/h ${distGlobal}`, 250, 420);
-
-        // Semáforo no canvas
-        const cores = ['#333','#333','#333'];
-        if      (velocidadeGlobal > limiteGlobal)         cores[0] = '#ff1744';
-        else if (velocidadeGlobal >= limiteGlobal * 0.9)  cores[1] = '#ffea00';
-        else                                               cores[2] = '#00e676';
-        [100, 200, 300].forEach((y, i) => {
-            ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(55, y, 28, 0, 2*Math.PI); ctx.fill();
-            ctx.fillStyle = cores[i]; ctx.beginPath(); ctx.arc(55, y, 24, 0, 2*Math.PI); ctx.fill();
-        });
-
-        if (pipAtivo) requestAnimationFrame(desenharPainelFlutuante);
-    }
-
-    // Prepara o vídeo PiP logo no início para evitar bloqueio do navegador
-    let pipPreparado = false;
     async function prepararPip() {
         if (pipPreparado) return;
-        try {
-            video.srcObject = canvas.captureStream(15);
-            await video.play();
-            pipPreparado = true;
-        } catch(e) {}
-    }
-    // Prepara assim que o usuário toca na tela pela primeira vez
-    document.body.addEventListener('click', prepararPip, { once: false });
-
-    async function alternarModoFlutuante() {
-        try {
-            liberarAudioNavegador();
-            await prepararPip();
-
-            if (!document.pictureInPictureElement) {
-                // Desenha um frame antes de pedir PiP
-                desenharFramePip();
-                await new Promise(r => setTimeout(r, 100));
-                await video.requestPictureInPicture();
-                pipAtivo = true;
-                desenharPainelFlutuante();
-            } else {
-                await document.exitPictureInPicture();
-                pipAtivo = false;
-            }
-        } catch (e) {
-            console.error('PiP erro:', e);
-            // Fallback: abre tela sobreposta interna se PiP não suportado
-            mostrarVelocimetroSobreposto();
-        }
+        try { video.srcObject=canvas.captureStream(15); await video.play(); pipPreparado=true; desenharFramePip(); } catch {}
     }
 
     function desenharFramePip() {
-        ctx.fillStyle = '#1e1e1e'; ctx.fillRect(0, 0, 500, 500);
-        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 160px Arial'; ctx.textAlign = 'center';
-        ctx.fillText(velocidadeGlobal, 250, 240);
-        ctx.font = 'bold 28px Arial'; ctx.fillStyle = '#888'; ctx.fillText('KM/H', 250, 295);
+        const cor = velocidadeGlobal>limiteGlobal?'#ff1744':velocidadeGlobal>=limiteGlobal*0.9?'#ffea00':'#00e676';
+        ctx.fillStyle='#1a1a2a'; ctx.fillRect(0,0,500,500);
+        ctx.fillStyle=cor; ctx.font='bold 180px Arial'; ctx.textAlign='center';
+        ctx.fillText(velocidadeGlobal,250,260);
+        ctx.fillStyle='#888'; ctx.font='bold 30px Arial'; ctx.fillText('KM/H',250,310);
+        ctx.fillStyle='#ffea00'; ctx.font='bold 24px Arial';
+        ctx.fillText(statusTextoGlobal.substring(0,28),250,370);
+        ctx.fillStyle='#aaa'; ctx.font='22px Arial';
+        ctx.fillText(`Limite: ${limiteGlobal} km/h`,250,420);
     }
 
-    // Fallback para navegadores sem suporte a PiP
+    function desenharPainelFlutuante() { desenharFramePip(); if (pipAtivo) requestAnimationFrame(desenharPainelFlutuante); }
+
+    async function alternarModoFlutuante() {
+        liberarAudioNavegador(); await prepararPip();
+        try {
+            if (!document.pictureInPictureElement) {
+                desenharFramePip(); await new Promise(r=>setTimeout(r,200));
+                await video.requestPictureInPicture();
+                pipAtivo=true; desenharPainelFlutuante();
+            } else {
+                await document.exitPictureInPicture(); pipAtivo=false;
+            }
+        } catch { mostrarVelocimetroSobreposto(); }
+    }
+
     function mostrarVelocimetroSobreposto() {
-        let overlay = document.getElementById('overlay-vel');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'overlay-vel';
-            overlay.style.cssText = `
-                position:fixed; bottom:80px; right:10px; z-index:999;
-                background:#1e1e1e; border:3px solid #0079f2; border-radius:16px;
-                padding:15px 20px; text-align:center; min-width:120px;
-                box-shadow:0 4px 20px rgba(0,0,0,0.8); cursor:move;
-            `;
-            overlay.innerHTML = `
-                <div id="ov-vel" style="font-size:56px;font-weight:bold;color:#fff;line-height:1;">0</div>
+        let ov = document.getElementById('overlay-vel');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'overlay-vel';
+            ov.style.cssText = 'position:fixed;bottom:90px;right:10px;z-index:999;background:#1a1a2a;border:3px solid #0079f2;border-radius:16px;padding:14px 18px;text-align:center;min-width:110px;box-shadow:0 4px 20px rgba(0,0,0,0.8);';
+            ov.innerHTML = `<div id="ov-vel" style="font-size:54px;font-weight:bold;color:#fff;line-height:1;">0</div>
                 <div style="font-size:12px;color:#888;font-weight:bold;">KM/H</div>
-                <div id="ov-status" style="font-size:11px;color:#ffea00;margin-top:4px;">VIA LIVRE</div>
-                <div id="ov-semaforo" style="font-size:20px;margin-top:6px;">🟢</div>
-                <button onclick="document.getElementById('overlay-vel').remove()" 
-                    style="margin-top:8px;background:#c62828;color:white;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">✕ FECHAR</button>
-            `;
-            document.body.appendChild(overlay);
-            // Atualiza o overlay junto com o GPS
-            overlayAtivo = true;
-        } else {
-            overlay.remove();
-            overlayAtivo = false;
-        }
+                <div id="ov-status" style="font-size:10px;color:#ffea00;margin-top:4px;"></div>
+                <div id="ov-sem" style="font-size:22px;margin-top:5px;">🟢</div>
+                <button onclick="document.getElementById('overlay-vel').remove();overlayAtivo=false;"
+                    style="margin-top:6px;background:#c62828;color:white;border:none;padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer;">✕</button>`;
+            document.body.appendChild(ov); overlayAtivo=true;
+        } else { ov.remove(); overlayAtivo=false; }
     }
-    let overlayAtivo = false;
 
-    // Atualiza overlay se estiver ativo
     function atualizarOverlay() {
         if (!overlayAtivo) return;
-        const ov = document.getElementById('overlay-vel');
-        if (!ov) return;
+        const ov = document.getElementById('overlay-vel'); if (!ov) return;
         document.getElementById('ov-vel').innerText = velocidadeGlobal;
-        document.getElementById('ov-status').innerText = statusTextoGlobal;
-        const emoji = velocidadeGlobal > limiteGlobal ? '🔴' : velocidadeGlobal >= limiteGlobal * 0.9 ? '🟡' : '🟢';
-        document.getElementById('ov-semaforo').innerText = emoji;
+        document.getElementById('ov-vel').style.color = velocidadeGlobal>limiteGlobal?'#ff1744':velocidadeGlobal>=limiteGlobal*0.9?'#ffea00':'#00e676';
+        document.getElementById('ov-status').innerText = statusTextoGlobal.substring(0,22);
+        document.getElementById('ov-sem').innerText = velocidadeGlobal>limiteGlobal?'🔴':velocidadeGlobal>=limiteGlobal*0.9?'🟡':'🟢';
     }
 
-    video.addEventListener('leavepictureinpicture', () => { pipAtivo = false; });
+    video.addEventListener('leavepictureinpicture', ()=>{ pipAtivo=false; });
+    document.body.addEventListener('click', ()=>{ liberarAudioNavegador(); prepararPip(); });
 
-    // =====================================================================
-    // INICIALIZAÇÃO
-    // =====================================================================
-    document.body.addEventListener('click', liberarAudioNavegador, { once: false });
     checarAutenticacaoExistente();
 </script>
 </body>
