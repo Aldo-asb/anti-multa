@@ -225,13 +225,13 @@
             const email = document.getElementById('login-email').value;
             const senha = document.getElementById('login-senha').value;
             try {
-                const res = await fetch(`${API_URL}/api/auth/login`, {
+                const resposta = await fetch(`${API_URL}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, senha })
                 });
                 const dados = await resposta.json();
-                if (res.ok) {
+                if (resposta.ok) {
                     localStorage.setItem('asb_jwt_token', dados.token);
                     localStorage.setItem('asb_user_email', email);
                     tokenLocal = dados.token;
@@ -245,13 +245,13 @@
             const email = document.getElementById('pin-email').value;
             const pin = document.getElementById('login-pin').value;
             try {
-                const res = await fetch(`${API_URL}/api/auth/pin`, {
+                const resposta = await fetch(`${API_URL}/api/auth/pin`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, pin })
                 });
                 const dados = await resposta.json();
-                if (res.ok) {
+                if (resposta.ok) {
                     localStorage.setItem('asb_jwt_token', dados.token);
                     localStorage.setItem('asb_user_email', email);
                     tokenLocal = dados.token;
@@ -267,13 +267,13 @@
             const senha = document.getElementById('cad-senha').value;
             const pin = document.getElementById('cad-pin').value;
             try {
-                const res = await fetch(`${API_URL}/api/auth/register`, {
+                const resposta = await fetch(`${API_URL}/api/auth/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nome, email, senha, pin })
                 });
                 const dados = await resposta.json();
-                if (res.ok) {
+                if (resposta.ok) {
                     localStorage.setItem('asb_jwt_token', dados.token);
                     localStorage.setItem('asb_user_email', email);
                     tokenLocal = dados.token;
@@ -286,8 +286,8 @@
         // SINCRONISMO GEOGRÁFICO DE RADARES EM TEMPO REAL
         async function sincronizarBancoDeRadares() {
             try {
-                const res = await fetch(`${API_URL}/api/radares`);
-                if (res.ok) {
+                const resposta = await fetch(`${API_URL}/api/radares`);
+                if (resposta.ok) {
                     listaRadares = await res.json();
                     plotarRadaresNoMapa();
                     atualizarTabelaGerenciamento();
@@ -330,7 +330,7 @@
                 velocidade: velOpcao
             };
             try {
-                const res = await fetch(`${API_URL}/api/radares`, {
+                const resposta = await fetch(`${API_URL}/api/radares`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -338,7 +338,7 @@
                     },
                     body: JSON.stringify(novoRadar)
                 });
-                if (res.ok) {
+                if (resposta.ok) {
                     fecharModalRadar();
                     sincronizarBancoDeRadares();
                 }
@@ -364,11 +364,11 @@
         async function removerRadarManual(id) {
             if (!confirm("Deseja deletar este radar permanentemente da nuvem?")) return;
             try {
-                const res = await fetch(`${API_URL}/api/radares/${id}`, {
+                const resposta = await fetch(`${API_URL}/api/radares/${id}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${tokenLocal}` }
                 });
-                if (res.ok) sincronizarBancoDeRadares();
+                if (resposta.ok) sincronizarBancoDeRadares();
             } catch (e) { alert("Erro ao deletar ponto."); }
         }
 
