@@ -46,15 +46,12 @@
         #centro{flex:1;position:relative;width:100%;}
         #mapa{width:100%;height:100%;z-index:1;}
 
-        /* ITEM BUSCA no modal */
-        #res-rota{background:#1e1e1e;border:1px solid #444;border-radius:8px;max-height:160px;overflow-y:auto;display:none;margin-top:4px;text-align:left;}
+        /* BARRA BUSCA */
+        #barra-busca{position:absolute;top:10px;left:10px;z-index:100;display:flex;gap:6px;width:calc(100% - 100px);}
+        #inp-busca{flex:1;padding:8px 12px;border-radius:8px;border:2px solid #3a3d48;background:#1e1e1edd;color:white;font-size:14px;}
+        #btn-buscar{background:#0079f2;color:white;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:16px;}
+        #res-busca{position:absolute;top:50px;left:10px;z-index:200;background:#1e1e1e;border:1px solid #444;border-radius:8px;width:calc(100% - 100px);max-height:180px;overflow-y:auto;display:none;}
         .item-busca{padding:10px 12px;border-bottom:1px solid #333;cursor:pointer;font-size:13px;color:#ddd;}
-
-        /* MODAL CONFIG */
-        #modal-config{border:3px solid #7b1fa2;}
-        #modal-config h4{color:#ce93d8;}
-        .btn-icone{background:#2a2a2a;border:2px solid #555;border-radius:10px;padding:14px 18px;cursor:pointer;font-size:30px;transition:all 0.2s;}
-        .btn-icone.sel{border-color:#7b1fa2;background:#3a1a4a;box-shadow:0 0 10px #7b1fa2;}
 
         /* PAINEL LATERAL DIREITO */
         #painel-lateral{position:absolute;top:10px;right:10px;z-index:100;display:flex;flex-direction:column;gap:6px;}
@@ -134,7 +131,10 @@
         .badge-val{background:#2e7d32;color:white;}
         .badge-pend{background:#555;color:#aaa;}
 
-
+        /* BOTÃO SAIR */
+        #btn-sair{position:absolute;bottom:80px;left:10px;z-index:100;
+            background:#1e1e1edd;border:1px solid #444;border-radius:8px;
+            padding:6px 10px;font-size:10px;color:#777;cursor:pointer;}
 
         /* PWA install banner */
         #pwa-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:1000;
@@ -216,6 +216,13 @@
     <div id="centro">
         <div id="mapa"></div>
 
+        <!-- BUSCA -->
+        <div id="barra-busca">
+            <input type="text" id="inp-busca" placeholder="🔎 Buscar endereço...">
+            <button id="btn-buscar" onclick="buscar()">🔎</button>
+        </div>
+        <div id="res-busca"></div>
+
         <!-- PAINEL LATERAL -->
         <div id="painel-lateral">
             <div class="btn-lat btn-lat-amarelo" onclick="abrirModal('modal-limite')" title="Limite da via">
@@ -227,11 +234,10 @@
             <div class="btn-lat btn-lat-rota" onclick="abrirModal('modal-rota')" title="Origem e destino">
                 🗺️<br>ROTA
             </div>
-            <div class="btn-lat" style="border-color:#7b1fa2;color:#ce93d8;" onclick="abrirModal('modal-config')" title="Configurações">
-                ⚙️<br>CONFIG
-            </div>
         </div>
 
+        <!-- BOTÃO SAIR -->
+        <div id="btn-sair" onclick="sair()">⏻ Sair</div>
     </div>
 
     <!-- MODAL RADAR -->
@@ -275,48 +281,11 @@
 
     <!-- MODAL ROTA -->
     <div id="modal-rota" class="modal">
-        <h4>🗺️ TRAÇAR ROTA</h4>
-
-        <!-- ORIGEM -->
-        <div style="position:relative;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                <span style="font-size:11px;color:#aaa;font-weight:bold;">📍 ORIGEM</span>
-                <button onclick="usarGPSOrigem()" style="background:#0079f2;color:white;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer;">📡 Usar minha posição</button>
-            </div>
-            <input type="text" id="inp-origem" placeholder="Sua posição atual (GPS)" oninput="buscarOrigem()"
-                style="width:100%;padding:10px;border-radius:6px;border:2px solid #3a3d48;background:#15171f;color:white;font-size:13px;">
-            <div id="res-origem" style="background:#1e1e1e;border:1px solid #444;border-radius:8px;max-height:130px;overflow-y:auto;display:none;margin-top:2px;text-align:left;position:relative;z-index:10;"></div>
-        </div>
-
-        <!-- SETA -->
-        <div style="text-align:center;font-size:18px;color:#0079f2;margin:6px 0;">↓</div>
-
-        <!-- DESTINO -->
-        <div style="position:relative;">
-            <div style="font-size:11px;color:#aaa;font-weight:bold;margin-bottom:4px;">🏁 DESTINO</div>
-            <input type="text" id="inp-destino" placeholder="Digite o destino..." oninput="buscarDestino()"
-                style="width:100%;padding:10px;border-radius:6px;border:2px solid #3a3d48;background:#15171f;color:white;font-size:13px;">
-            <div id="res-rota" style="background:#1e1e1e;border:1px solid #444;border-radius:8px;max-height:130px;overflow-y:auto;display:none;margin-top:2px;text-align:left;position:relative;z-index:10;"></div>
-        </div>
-
-        <div id="info-rota" style="font-size:12px;color:#aaa;margin:8px 0;min-height:18px;text-align:center;"></div>
-
-        <button class="btn-p" style="margin-top:4px;" onclick="calcularRota()">🔍 TRAÇAR ROTA</button>
-        <button class="btn-cancel" style="margin-top:6px;" onclick="limparRota()">🗑️ LIMPAR ROTA</button>
-        <button class="btn-cancel" style="margin-top:4px;" onclick="fecharModal('modal-rota')">❌ FECHAR</button>
-    </div>
-
-    <!-- MODAL CONFIG -->
-    <div id="modal-config" class="modal">
-        <h4>⚙️ CONFIGURAÇÕES</h4>
-        <p style="font-size:12px;color:#aaa;margin:0 0 12px;">Escolha o ícone do seu veículo no mapa</p>
-        <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px;">
-            <button id="ic-carro"   class="btn-icone sel" onclick="trocarIcone('carro')">🚗</button>
-            <button id="ic-tri"     class="btn-icone"     onclick="trocarIcone('triangulo')">🔺</button>
-            <button id="ic-bola"    class="btn-icone"     onclick="trocarIcone('bola')">🔵</button>
-            <button id="ic-moto"    class="btn-icone"     onclick="trocarIcone('moto')">🏍️</button>
-        </div>
-        <button class="btn-cancel" onclick="fecharModal('modal-config')">✅ CONFIRMAR</button>
+        <h4>🗺️ ORIGEM E DESTINO</h4>
+        <input type="text" id="inp-origem"  placeholder="📍 Origem (ou deixe vazio para usar GPS)">
+        <input type="text" id="inp-destino" placeholder="🏁 Destino">
+        <button class="btn-p" style="margin-top:8px;" onclick="calcularRota()">🔍 BUSCAR ROTA</button>
+        <button class="btn-cancel" onclick="fecharModal('modal-rota')">❌ CANCELAR</button>
     </div>
 
     <!-- POPUP EXCESSO -->
@@ -388,7 +357,6 @@
         <button class="btn-a ba-meus"  onclick="abrirOv('ov-radares')">🗂️<br>MEUS<br>RAD.</button>
         <button class="btn-a ba-hist"  onclick="abrirOv('ov-hist')">📋<br>HISTÓRICO</button>
         <button class="btn-a ba-pip"   onclick="toggleFlutuante()">🔲<br>FLUTUANTE</button>
-        <button class="btn-a" style="background:#555;" onclick="sair()">⏻<br>SAIR</button>
     </div>
 
     <div id="info-gps">GPS: aguardando... | <span id="span-user"></span></div>
@@ -446,9 +414,10 @@ const mapa = L.map('mapa',{zoomControl:false}).setView([-16.6869,-49.2648],14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(mapa);
 L.control.zoom({position:'bottomright'}).addTo(mapa);
 
-// Ícone dinâmico — definido pela variável tipoIcone (carregada depois no script)
-// Placeholder — será substituído após init
-let iconeCarro = null; // inicializado após carregar tipoIcone
+const iconeCarro = L.divIcon({
+    html:'<div style="font-size:32px;filter:drop-shadow(0 0 4px #000);">🚗</div>',
+    className:'', iconSize:[36,36], iconAnchor:[18,18]
+});
 
 // =====================================================================
 // AUTH
@@ -489,11 +458,6 @@ function entrar() {
         if (eu.is_admin) adicionarBtnAdmin();
     }
     sync(); gps(); renderHist(); prepPip();
-    // Marca botão do ícone salvo
-    setTimeout(()=>{ ['carro','triangulo','bola','moto'].forEach(t=>{
-        const el=document.getElementById(`ic-${t}`);
-        if(el) el.classList.toggle('sel', t===tipoIcone);
-    }); }, 100);
 }
 
 function adicionarBtnAdmin() {
@@ -946,7 +910,7 @@ function gps() {
         document.getElementById('vel').innerText=velAtual;
         document.getElementById('info-gps').innerHTML=`GPS: ${parseInt(pos.coords.accuracy)}m | <span id="span-user">${eu?eu.nome+(eu.is_admin?' 👑':''):''}</span>`;
 
-        if(!marcador) marcador=L.marker([lat,lon],{icon:obterIconeAtual()}).addTo(mapa);
+        if(!marcador) marcador=L.marker([lat,lon],{icon:iconeCarro}).addTo(mapa);
         else marcador.setLatLng([lat,lon]);
         mapa.setView([lat,lon],16);
 
