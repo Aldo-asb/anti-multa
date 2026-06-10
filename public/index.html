@@ -7,9 +7,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Olho no Trânsito">
+    <meta name="apple-mobile-web-app-title" content="Anti-Multa">
     <link rel="manifest" href="/manifest.json">
-    <title>Olho no Trânsito</title>
+    <title>Anti-Multa Goiânia</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -117,10 +117,10 @@
         .scroll{flex:1;overflow-y:auto;padding:12px;}
         table{width:100%;border-collapse:collapse;font-size:12px;}
         th{color:#777;padding:7px 4px;border-bottom:1px solid #333;text-align:left;font-size:11px;}
-        td{padding:11px 5px;border-bottom:1px solid #222;vertical-align:middle;}
-        .btn-del{background:#c62828;color:white;border:none;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;}
-        .btn-ok{background:#2e7d32;color:white;border:none;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;}
-        .btn-blk{background:#555;color:white;border:none;padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;}
+        td{padding:8px 4px;border-bottom:1px solid #222;vertical-align:middle;}
+        .btn-del{background:#c62828;color:white;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;}
+        .btn-ok{background:#2e7d32;color:white;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;}
+        .btn-blk{background:#555;color:white;border:none;padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;}
         .c-v{color:#00e676;font-weight:bold;}
         .c-a{color:#ffea00;font-weight:bold;}
         .c-r{color:#ff1744;font-weight:bold;}
@@ -131,27 +131,10 @@
         .badge-val{background:#2e7d32;color:white;}
         .badge-pend{background:#555;color:#aaa;}
 
-        /* MODAL CONFIG */
-        #modal-config{border:3px solid #7b1fa2;}
-        #modal-config h4{color:#ce93d8;}
-        .btn-icone{background:#2a2a2a;border:2px solid #555;border-radius:12px;
-            padding:12px 14px;cursor:pointer;transition:all 0.2s;display:flex;
-            flex-direction:column;align-items:center;gap:4px;}
-        .btn-icone .ic-emoji{font-size:28px;line-height:1;}
-        .btn-icone .ic-label{font-size:10px;color:#aaa;}
-        .btn-icone.sel{border-color:#7b1fa2;background:#3a1a4a;box-shadow:0 0 10px #7b1fa2;}
-
-        /* CENTRALIZAR — lado esquerdo inferior, fora dos botões +/- */
-        #btn-centralizar{position:absolute;bottom:14px;left:10px;z-index:100;
-            background:#1e1e1edd;border:2px solid #0079f2;border-radius:50%;
-            width:44px;height:44px;display:flex;align-items:center;justify-content:center;
-            font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5);}
-
-        /* RESULTADO BUSCA ROTA */
-        #res-rota,#res-origem{background:#1e1e1e;border:1px solid #444;border-radius:8px;
-            max-height:140px;overflow-y:auto;display:none;margin-top:3px;text-align:left;}
-        .item-busca{padding:10px 12px;border-bottom:1px solid #333;cursor:pointer;font-size:13px;color:#ddd;}
-        .item-busca:active{background:#2a2a3a;}
+        /* BOTÃO SAIR */
+        #btn-sair{position:absolute;bottom:80px;left:10px;z-index:100;
+            background:#1e1e1edd;border:1px solid #444;border-radius:8px;
+            padding:6px 10px;font-size:10px;color:#777;cursor:pointer;}
 
         /* PWA install banner */
         #pwa-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:1000;
@@ -166,7 +149,7 @@
 <!-- AUTH -->
 <div id="tela-login" class="tela-auth">
     <div class="card-auth">
-        <h2>🚦 OLHO NO TRÂNSITO</h2>
+        <h2>🚦 Anti-Multa Goiânia</h2>
         <input type="email"    id="l-email" class="inp" placeholder="E-mail">
         <input type="password" id="l-senha" class="inp" placeholder="Senha">
         <button class="btn-p" onclick="fazerLogin()">ENTRAR</button>
@@ -233,6 +216,13 @@
     <div id="centro">
         <div id="mapa"></div>
 
+        <!-- BUSCA -->
+        <div id="barra-busca">
+            <input type="text" id="inp-busca" placeholder="🔎 Buscar endereço...">
+            <button id="btn-buscar" onclick="buscar()">🔎</button>
+        </div>
+        <div id="res-busca"></div>
+
         <!-- PAINEL LATERAL -->
         <div id="painel-lateral">
             <div class="btn-lat btn-lat-amarelo" onclick="abrirModal('modal-limite')" title="Limite da via">
@@ -241,19 +231,13 @@
             <div class="btn-lat btn-lat-laranja" onclick="abrirModal('modal-alerta')" title="Reportar alerta">
                 ⚠️<br>ALERTA
             </div>
-            <div class="btn-lat btn-lat-rota" onclick="abrirModalRota()" title="Traçar rota">
+            <div class="btn-lat btn-lat-rota" onclick="abrirModal('modal-rota')" title="Origem e destino">
                 🗺️<br>ROTA
             </div>
-            <div class="btn-lat" style="border-color:#ce93d8;color:#ce93d8;" onclick="abrirModalConfig()" title="Configurações">
-                ⚙️<br>CONFIG
-            </div>
-            <div class="btn-lat" style="border-color:#777;color:#aaa;" onclick="sair()" title="Sair">
-                ⏻<br>SAIR
-            </div>
         </div>
-        <!-- CENTRALIZAR lado esquerdo inferior -->
-        <div id="btn-centralizar" onclick="centralizarMapa()" title="Centralizar no meu local">🎯</div>
 
+        <!-- BOTÃO SAIR -->
+        <div id="btn-sair" onclick="sair()">⏻ Sair</div>
     </div>
 
     <!-- MODAL RADAR -->
@@ -264,12 +248,6 @@
             <button class="btn-v" onclick="fixarRadar(50)">50<br><small>km/h</small></button>
             <button class="btn-v" onclick="fixarRadar(60)">60<br><small>km/h</small></button>
             <button class="btn-v" onclick="fixarRadar(80)">80<br><small>km/h</small></button>
-        </div>
-        <div style="border-top:1px solid #444;margin-top:10px;padding-top:10px;">
-            <p style="font-size:11px;color:#aaa;margin:0 0 8px;">📹 Câmera de fiscalização</p>
-            <button class="btn-v" style="width:100%;border-color:#9c27b0;font-size:14px;padding:12px;" onclick="fixarRadar('camera')">
-                📹 Câmera no Semáforo
-            </button>
         </div>
         <button class="btn-cancel" onclick="fecharModal('modal-radar')">❌ CANCELAR</button>
     </div>
@@ -298,52 +276,16 @@
         <div onclick="fixarAlerta('acidente','🚨 Acidente')" class="btn-alerta">🚨 <span>Acidente</span></div>
         <div onclick="fixarAlerta('interrupcao','⛔ Via Interditada')" class="btn-alerta">⛔ <span>Via Interditada</span></div>
         <div onclick="fixarAlerta('alagamento','🌊 Alagamento')" class="btn-alerta">🌊 <span>Alagamento</span></div>
-        <div onclick="fixarAlerta('estacionamento','🚫 Proibido Estacionar')" class="btn-alerta">🚫 <span>Proibido Estacionar</span></div>
         <button class="btn-cancel" onclick="fecharModal('modal-alerta')">❌ CANCELAR</button>
-    </div>
-
-    <!-- MODAL CONFIG -->
-    <div id="modal-config" class="modal">
-        <h4>⚙️ CONFIGURAÇÕES</h4>
-        <p style="font-size:11px;color:#aaa;margin:0 0 14px;">Ícone do seu veículo no mapa</p>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;">
-            <button id="ic-carro" class="btn-icone sel" onclick="trocarIcone('carro')">
-                <span class="ic-emoji">🚗</span><span class="ic-label">Carro</span>
-            </button>
-            <button id="ic-triangulo" class="btn-icone" onclick="trocarIcone('triangulo')">
-                <span class="ic-emoji">🔺</span><span class="ic-label">Triângulo</span>
-            </button>
-            <button id="ic-bola" class="btn-icone" onclick="trocarIcone('bola')">
-                <span class="ic-emoji">🔵</span><span class="ic-label">Bolinha</span>
-            </button>
-            <button id="ic-moto" class="btn-icone" onclick="trocarIcone('moto')">
-                <span class="ic-emoji">🏍️</span><span class="ic-label">Moto</span>
-            </button>
-        </div>
-        <button class="btn-cancel" onclick="fecharModal('modal-config')">✅ CONFIRMAR</button>
     </div>
 
     <!-- MODAL ROTA -->
     <div id="modal-rota" class="modal">
-        <h4>🗺️ TRAÇAR ROTA</h4>
-        <div style="font-size:11px;color:#aaa;text-align:left;margin-bottom:3px;">📍 ORIGEM</div>
-        <div style="display:flex;gap:6px;margin-bottom:2px;">
-            <input type="text" id="inp-origem" placeholder="Sua posição GPS atual" oninput="buscarOrigem(this.value)"
-                style="flex:1;padding:9px;border-radius:6px;border:2px solid #3a3d48;background:#15171f;color:white;font-size:13px;">
-            <button onclick="usarGPS()" title="Usar GPS"
-                style="background:#0079f2;color:white;border:none;border-radius:6px;padding:8px 10px;cursor:pointer;font-size:18px;">📡</button>
-        </div>
-        <div id="res-origem"></div>
-        <div style="font-size:11px;color:#aaa;text-align:left;margin:6px 0 3px;">🏁 DESTINO</div>
-        <input type="text" id="inp-destino" placeholder="Digite o destino..." oninput="buscarDestino(this.value)"
-            style="width:100%;padding:9px;border-radius:6px;border:2px solid #3a3d48;background:#15171f;color:white;font-size:13px;">
-        <div id="res-rota"></div>
-        <div id="info-rota" style="font-size:12px;color:#aaa;margin:8px 0;min-height:16px;text-align:center;"></div>
-        <button class="btn-p" style="margin-top:2px;" onclick="calcularRota()">🔍 TRAÇAR ROTA</button>
-        <div style="display:flex;gap:8px;margin-top:6px;">
-            <button style="flex:1;background:#c62828;color:white;border:none;padding:10px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;" onclick="limparRota()">🗑️ LIMPAR</button>
-            <button style="flex:1;background:#444;color:white;border:none;padding:10px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;" onclick="fecharModal('modal-rota')">❌ FECHAR</button>
-        </div>
+        <h4>🗺️ ORIGEM E DESTINO</h4>
+        <input type="text" id="inp-origem"  placeholder="📍 Origem (ou deixe vazio para usar GPS)">
+        <input type="text" id="inp-destino" placeholder="🏁 Destino">
+        <button class="btn-p" style="margin-top:8px;" onclick="calcularRota()">🔍 BUSCAR ROTA</button>
+        <button class="btn-cancel" onclick="fecharModal('modal-rota')">❌ CANCELAR</button>
     </div>
 
     <!-- POPUP EXCESSO -->
@@ -386,10 +328,9 @@
         <div class="topo-ov">
             <h3>👑 Admin</h3>
             <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                <button onclick="abaAdmin('usuarios')" style="background:#0079f2;color:white;border:none;padding:8px 12px;border-radius:5px;font-size:12px;cursor:pointer;">👥 Usuários</button>
-                <button onclick="abaAdmin('limites')"  style="background:#ffea00;color:#000;border:none;padding:8px 12px;border-radius:5px;font-size:12px;cursor:pointer;">🚧 Limites</button>
-                <button onclick="abaAdmin('alertas')"  style="background:#ff9800;color:#000;border:none;padding:8px 12px;border-radius:5px;font-size:12px;cursor:pointer;">⚠️ Alertas</button>
-                <button onclick="exportarDados()" style="background:#2e7d32;color:white;border:none;padding:8px 12px;border-radius:5px;font-size:12px;cursor:pointer;">💾 Exportar</button>
+                <button onclick="abaAdmin('usuarios')" style="background:#0079f2;color:white;border:none;padding:6px 9px;border-radius:5px;font-size:10px;cursor:pointer;">👥</button>
+                <button onclick="abaAdmin('limites')"  style="background:#ffea00;color:#000;border:none;padding:6px 9px;border-radius:5px;font-size:10px;cursor:pointer;">🚧</button>
+                <button onclick="abaAdmin('alertas')"  style="background:#ff9800;color:#000;border:none;padding:6px 9px;border-radius:5px;font-size:10px;cursor:pointer;">⚠️</button>
                 <button class="btn-fechar" onclick="fecharOv('ov-admin')">❌</button>
             </div>
         </div>
@@ -423,7 +364,7 @@
 
 <!-- PWA BANNER -->
 <div id="pwa-banner">
-    📲 Instale o Olho no Trânsito na sua tela inicial!
+    📲 Instale o Anti-Multa na sua tela inicial!
     <button onclick="instalarPWA()">INSTALAR</button>
     <button onclick="document.getElementById('pwa-banner').style.display='none'" style="background:transparent;color:white;border:none;cursor:pointer;margin-left:5px;">✕</button>
 </div>
@@ -473,33 +414,10 @@ const mapa = L.map('mapa',{zoomControl:false}).setView([-16.6869,-49.2648],14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(mapa);
 L.control.zoom({position:'bottomright'}).addTo(mapa);
 
-// ÍCONE DINÂMICO
-let tipoIcone = localStorage.getItem('olho_icone') || 'carro';
-const ICONES_HTML = {
-    carro:    '<div style="font-size:32px;filter:drop-shadow(0 0 4px #000);">🚗</div>',
-    triangulo:'<div style="width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-bottom:26px solid #0079f2;filter:drop-shadow(0 0 3px rgba(0,0,0,0.8));margin:5px auto 0;"></div>',
-    bola:     '<div style="width:28px;height:28px;border-radius:50%;background:#0079f2;border:3px solid #fff;box-shadow:0 0 8px #0079f2;"></div>',
-    moto:     '<div style="font-size:32px;filter:drop-shadow(0 0 4px #000);">🏍️</div>'
-};
-function obterIcone(){
-    return L.divIcon({html:ICONES_HTML[tipoIcone],className:'',iconSize:[36,36],iconAnchor:[18,18]});
-}
-function trocarIcone(tipo){
-    tipoIcone=tipo;
-    localStorage.setItem('olho_icone',tipo);
-    ['carro','triangulo','bola','moto'].forEach(t=>{
-        const el=document.getElementById('ic-'+t);
-        if(el) el.classList.toggle('sel', t===tipo);
-    });
-    if(marcador) marcador.setIcon(obterIcone());
-}
-function abrirModalConfig(){
-    ['carro','triangulo','bola','moto'].forEach(t=>{
-        const el=document.getElementById('ic-'+t);
-        if(el) el.classList.toggle('sel', t===tipoIcone);
-    });
-    document.getElementById('modal-config').style.display='block';
-}
+const iconeCarro = L.divIcon({
+    html:'<div style="font-size:32px;filter:drop-shadow(0 0 4px #000);">🚗</div>',
+    className:'', iconSize:[36,36], iconAnchor:[18,18]
+});
 
 // =====================================================================
 // AUTH
@@ -525,7 +443,7 @@ function limpar() {
 }
 
 function sair() {
-    if (!confirm('Deseja sair do Olho no Trânsito?')) return;
+    if (!confirm('Deseja sair do Anti-Multa?')) return;
     limpar();
 }
 
@@ -638,7 +556,7 @@ function plotLimites() {
     });
 }
 
-const EMOJI_ALERTA={blitz:'🚔',obras:'🚧',acidente:'🚨',interrupcao:'⛔',alagamento:'🌊',estacionamento:'🚫'};
+const EMOJI_ALERTA={blitz:'🚔',obras:'🚧',acidente:'🚨',interrupcao:'⛔',alagamento:'🌊'};
 function plotAlertas() {
     mapa.eachLayer(l=>{if(l._A) mapa.removeLayer(l);});
     alertas.forEach(al=>{
@@ -658,27 +576,17 @@ function plotAlertas() {
 // AÇÕES — FIXAR RADAR / LIMITE / ALERTA
 // =====================================================================
 function abrirModal(id) {
-    // Config e rota não precisam de GPS
-    if (id==='modal-config') { abrirModalConfig(); return; }
-    if (id==='modal-rota')   { abrirModalRota();   return; }
     if (lat===0) return alert('Aguardando GPS.');
     document.getElementById(id).style.display='block';
 }
 function fecharModal(id) { document.getElementById(id).style.display='none'; }
 
 async function fixarRadar(vel) {
-    const isCamera = vel==='camera';
-    const label = isCamera ? 'Câmera no Semáforo' : `Radar de ${vel} km/h`;
-    if (!confirm(`📍 Confirmar fixação:\n${label}\nna sua posição atual?`)) return;
     try {
-        const localNome = isCamera
-            ? `📹 Câmera Semáforo — ${new Date().toLocaleTimeString('pt-BR')}`
-            : `Radar ${vel}km/h — ${new Date().toLocaleTimeString('pt-BR')}`;
-        const velocidade = isCamera ? 0 : vel;
         const r=await fetch(`${API}/api/radares`,{method:'POST',
             headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-            body:JSON.stringify({local:localNome,lat,lon,velocidade})});
-        if(r.ok){fecharModal('modal-radar');await syncRadares();alert(`✅ ${label} fixado com sucesso!`);}
+            body:JSON.stringify({local:`Radar ${vel}km/h — ${new Date().toLocaleTimeString('pt-BR')}`,lat,lon,velocidade:vel})});
+        if(r.ok){fecharModal('modal-radar');await syncRadares();}
         else {const e=await r.json();alert(e.error||e.msg);}
     } catch {alert('Erro ao fixar radar.');}
 }
@@ -1002,7 +910,7 @@ function gps() {
         document.getElementById('vel').innerText=velAtual;
         document.getElementById('info-gps').innerHTML=`GPS: ${parseInt(pos.coords.accuracy)}m | <span id="span-user">${eu?eu.nome+(eu.is_admin?' 👑':''):''}</span>`;
 
-        if(!marcador) marcador=L.marker([lat,lon],{icon:obterIcone()}).addTo(mapa);
+        if(!marcador) marcador=L.marker([lat,lon],{icon:iconeCarro}).addTo(mapa);
         else marcador.setLatLng([lat,lon]);
         mapa.setView([lat,lon],16);
 
