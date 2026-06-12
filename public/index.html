@@ -615,13 +615,30 @@ async function syncAlertas() {
 function plotRadares() {
     mapa.eachLayer(l=>{if(l._R) mapa.removeLayer(l);});
     radares.forEach(rd=>{
+        const isCamera = rd.local && rd.local.includes('📹');
         const meu = eu&&rd.user_id===eu.id;
-        const cor = meu?'#0079f2':'#ff1744';
-        const c=L.circle([rd.lat,rd.lon],{color:cor,fillColor:cor,fillOpacity:0.15,radius:100}).addTo(mapa);
-        c._R=true;
-        const p=L.circleMarker([rd.lat,rd.lon],{radius:8,color:'#fff',fillColor:cor,fillOpacity:1}).addTo(mapa)
-            .bindPopup(`<b>${rd.local}</b><br>Limite: <b>${rd.velocidade}km/h</b><br>Por: ${rd.nome_usuario||'usuário'}`);
-        p._R=true;
+
+        if (isCamera) {
+            // Câmera: ícone 📹 no mapa com círculo roxo menor (50m)
+            const cor = meu ? '#7b1fa2' : '#9c27b0';
+            const c = L.circle([rd.lat,rd.lon],{color:cor,fillColor:cor,fillOpacity:0.12,radius:50,dashArray:'6,4'}).addTo(mapa);
+            c._R = true;
+            const ic = L.divIcon({
+                html:'<div style="font-size:22px;filter:drop-shadow(0 0 3px #000);background:rgba(30,30,30,0.7);border-radius:50%;padding:3px;border:2px solid #9c27b0;">📹</div>',
+                className:'', iconSize:[32,32], iconAnchor:[16,16]
+            });
+            const p = L.marker([rd.lat,rd.lon],{icon:ic}).addTo(mapa)
+                .bindPopup(`<b>${rd.local}</b><br>📹 Câmera de fiscalização<br>Por: ${rd.nome_usuario||'usuário'}`);
+            p._R = true;
+        } else {
+            // Radar normal
+            const cor = meu?'#0079f2':'#ff1744';
+            const c=L.circle([rd.lat,rd.lon],{color:cor,fillColor:cor,fillOpacity:0.15,radius:100}).addTo(mapa);
+            c._R=true;
+            const p=L.circleMarker([rd.lat,rd.lon],{radius:8,color:'#fff',fillColor:cor,fillOpacity:1}).addTo(mapa)
+                .bindPopup(`<b>${rd.local}</b><br>Limite: <b>${rd.velocidade}km/h</b><br>Por: ${rd.nome_usuario||'usuário'}`);
+            p._R=true;
+        }
     });
 }
 
@@ -899,10 +916,26 @@ function mostrarPopup(v, lim) {
     const agora=Date.now();
     if(agora-ultimoExcesso<10000) return;
     ultimoExcesso=agora; popupAtivo=true;
+    // Cor vermelha padrão para excesso
+    document.getElementById('popup-vel').style.background='rgba(255,23,68,0.93)';
     document.getElementById('popup-msg').innerText=`Sua velocidade: ${v} km/h`;
     document.getElementById('popup-det').innerText=`Limite: ${lim} km/h`;
     document.getElementById('popup-vel').style.display='flex';
     [0,350,700].forEach(t=>setTimeout(()=>bip(900,0.3),t));
+    setTimeout(fecharPopup,5000);
+}
+
+function mostrarPopupAlerta(titulo, detalhe, cor) {
+    if(popupAtivo) return;
+    const agora=Date.now();
+    if(agora-ultimoExcesso<8000) return;
+    ultimoExcesso=agora; popupAtivo=true;
+    document.getElementById('popup-vel').style.background=cor+'ee';
+    document.getElementById('popup-msg').innerText=titulo;
+    document.getElementById('popup-det').innerText=detalhe;
+    document.getElementById('popup-vel').style.display='flex';
+    // Bipe diferente — dois bipes graves
+    [0,500].forEach(t=>setTimeout(()=>bip(600,0.4),t));
     setTimeout(fecharPopup,5000);
 }
 function fecharPopup() {
@@ -1147,12 +1180,24 @@ function gps() {
             } else limitesNoRaio.delete(lv.id);
         });
 
-        // ALERTAS — aviso visual a 150m
+        // ALERTAS — aviso visual a 150m + popup estacionamento a 30m
         alertas.forEach(al=>{
             const d=dist(lat,lon,al.lat,al.lon);
-            if(d<=150&&txtStatus==='SINALIZADOR DE VIA ACTIVO'){
+            if(d<=150){
                 const emoji=EMOJI_ALERTA[al.tipo]||'⚠️';
-                txtStatus=`${emoji} ${al.descricao} — ${parseInt(d)}m`;
+                if(txtStatus==='SINALIZADOR DE VIA ACTIVO')
+                    txtStatus=`${emoji} ${al.descricao} — ${parseInt(d)}m`;
+                // Popup especial para proibido estacionar quando parado (vel<5) a menos de 30m
+                if(al.tipo==='estacionamento' && d<=30 && velAtual<5){
+                    if(!radaresNoRaio.has('est_'+al.id)){
+                        radaresNoRaio.add('est_'+al.id);
+                        mostrarPopupAlerta('🚫 PROIBIDO ESTACIONAR!',
+                            'Você está em uma zona de proibição de estacionamento.',
+                            '#f57c00');
+                    }
+                } else if(d>30) {
+                    radaresNoRaio.delete('est_'+al.id);
+                }
             }
         });
 
